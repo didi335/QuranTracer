@@ -18,14 +18,12 @@ export interface SurahDisplayHandle {
 
 export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
   function SurahDisplay({ chapter, verses, showText, penSettings, isDark }, ref) {
-    const containerRef = useRef<HTMLDivElement>(null);
     const textLayerRef = useRef<HTMLDivElement>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
 
     const { canvasRef, startDrawing, draw, stopDrawing, undo, clear, clearHistory, downloadAsImage, getCanvasPoint } =
       useCanvas(penSettings, scrollRef);
 
-    // Sync canvas size to text layer size whenever verses/chapter changes
     const syncCanvasSize = useCallback(() => {
       const canvas = canvasRef.current;
       const textLayer = textLayerRef.current;
@@ -34,11 +32,9 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
       const dpr = window.devicePixelRatio || 1;
       const w = textLayer.offsetWidth;
       const h = textLayer.offsetHeight;
-
       if (w === 0 || h === 0) return;
 
-      // Save current drawing
-      const ctx = canvas.getContext("2d");
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
       let saved: ImageData | null = null;
       if (ctx && canvas.width > 0 && canvas.height > 0) {
         try { saved = ctx.getImageData(0, 0, canvas.width, canvas.height); } catch { saved = null; }
@@ -49,21 +45,17 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
       canvas.style.width = `${w}px`;
       canvas.style.height = `${h}px`;
 
-      // Restore drawing (best-effort)
       if (saved && ctx) {
         try { ctx.putImageData(saved, 0, 0); } catch { /* ignore */ }
       }
     }, [canvasRef]);
 
-    // Clear and resize when chapter changes
     useEffect(() => {
       clearHistory();
-      // Wait for DOM to render
-      const id = setTimeout(() => syncCanvasSize(), 50);
+      const id = setTimeout(() => syncCanvasSize(), 80);
       return () => clearTimeout(id);
     }, [chapter?.id, clearHistory, syncCanvasSize]);
 
-    // Resize observer on text layer
     useEffect(() => {
       const el = textLayerRef.current;
       if (!el) return;
@@ -75,7 +67,11 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
     useImperativeHandle(ref, () => ({
       undo,
       clear,
-      download: () => downloadAsImage(textLayerRef, showText, chapter ? `${chapter.name_simple}-${chapter.id}` : "quran"),
+      download: () => downloadAsImage(
+        textLayerRef,
+        showText,
+        chapter ? `${chapter.name_simple}-${chapter.id}` : "quran"
+      ),
     }));
 
     const handlePointerDown = useCallback(
@@ -107,140 +103,150 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
       [stopDrawing]
     );
 
-    const textColor = isDark ? "rgba(240, 230, 210, 0.92)" : "rgba(20, 20, 30, 0.90)";
-    const verseMarkerColor = isDark ? "rgba(212, 175, 55, 0.80)" : "rgba(26, 82, 118, 0.70)";
-    const bismillahColor = isDark ? "rgba(212, 175, 55, 0.88)" : "rgba(26, 82, 118, 0.85)";
+    const textColor = isDark ? "rgba(238, 228, 205, 0.94)" : "rgba(15, 15, 25, 0.88)";
+    const markerColor = isDark ? "rgba(212, 175, 55, 0.75)" : "rgba(26, 82, 118, 0.60)";
+    const bismillahColor = isDark ? "rgba(212, 175, 55, 0.90)" : "rgba(26, 82, 118, 0.82)";
+    const headerAccent = isDark ? "#d4af37" : "#1a5276";
+    const headerBg = isDark ? "rgba(212,175,55,0.10)" : "rgba(26,82,118,0.06)";
+    const headerBorder = isDark ? "rgba(212,175,55,0.25)" : "rgba(26,82,118,0.15)";
+    const dividerColor = isDark ? "rgba(212,175,55,0.15)" : "rgba(26,82,118,0.10)";
 
     return (
-      <div ref={containerRef} className="relative w-full h-full" style={{ touchAction: "none" }}>
-        {/* Scrollable wrapper */}
+      <div className="relative w-full h-full" style={{ touchAction: "none" }}>
+        {/* Scrollable container */}
         <div
           ref={scrollRef}
           className="absolute inset-0 overflow-y-auto overflow-x-hidden"
           style={{ touchAction: showText ? "pan-y" : "none" }}
         >
-          {/* Text layer */}
+          {/* Text layer — centered column with breathing room */}
           <div
             ref={textLayerRef}
-            className="relative w-full px-8 py-10"
+            className="relative w-full"
             style={{
               minHeight: "100%",
               pointerEvents: "none",
-              display: showText ? "block" : "block",
-              opacity: showText ? 1 : 0,
               userSelect: "none",
             }}
           >
-            {chapter && (
-              <>
-                {/* Surah header */}
-                <div className="text-center mb-8">
-                  <div
-                    className="inline-block px-8 py-3 rounded-2xl mb-3"
-                    style={{
-                      background: isDark ? "rgba(212,175,55,0.12)" : "rgba(26,82,118,0.08)",
-                      border: `1px solid ${isDark ? "rgba(212,175,55,0.3)" : "rgba(26,82,118,0.2)"}`,
-                    }}
-                  >
-                    <p
-                      dir="rtl"
-                      style={{
-                        fontFamily: '"Scheherazade New", "Amiri", serif',
-                        fontSize: "clamp(28px, 4vw, 48px)",
-                        color: isDark ? "#d4af37" : "#1a5276",
-                        lineHeight: 1.5,
-                        margin: 0,
-                      }}
+            <div
+              className="mx-auto"
+              style={{
+                maxWidth: 820,
+                paddingTop: 56,
+                paddingBottom: 80,
+                paddingLeft: 48,
+                paddingRight: 48,
+                opacity: showText ? 1 : 0,
+                transition: "opacity 0.25s ease",
+              }}
+            >
+              {chapter && (
+                <>
+                  {/* Surah header */}
+                  <div className="text-center mb-10">
+                    <div
+                      className="inline-block px-10 py-4 rounded-2xl"
+                      style={{ background: headerBg, border: `1px solid ${headerBorder}` }}
                     >
-                      {chapter.name_arabic}
-                    </p>
-                    <p
-                      style={{
-                        fontSize: "clamp(11px, 1.5vw, 14px)",
-                        color: isDark ? "#a0a0c0" : "#7f8c8d",
-                        marginTop: 4,
-                        letterSpacing: "0.05em",
-                        fontWeight: 600,
-                        textTransform: "uppercase",
-                      }}
-                    >
-                      {chapter.name_simple} · {chapter.translated_name.name} · {chapter.verses_count} verses
-                    </p>
-                  </div>
-
-                  {/* Bismillah (all surahs except Al-Fatihah (1) and At-Tawbah (9)) */}
-                  {chapter.bismillah_pre && (
-                    <p
-                      dir="rtl"
-                      className="mt-4"
-                      style={{
-                        fontFamily: '"Scheherazade New", "Amiri", serif',
-                        fontSize: "clamp(28px, 3.5vw, 44px)",
-                        color: bismillahColor,
-                        lineHeight: 2,
-                        textAlign: "center",
-                      }}
-                    >
-                      بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ
-                    </p>
-                  )}
-                </div>
-
-                {/* Divider */}
-                <div
-                  className="mb-8 mx-auto"
-                  style={{
-                    height: 1,
-                    background: isDark ? "rgba(212,175,55,0.2)" : "rgba(26,82,118,0.12)",
-                    maxWidth: "80%",
-                  }}
-                />
-
-                {/* Verses - all together, flowing text */}
-                <div
-                  dir="rtl"
-                  style={{
-                    fontFamily: '"Scheherazade New", "Amiri", serif',
-                    fontSize: "clamp(24px, 3vw, 40px)",
-                    lineHeight: 2.4,
-                    color: textColor,
-                    textAlign: "justify",
-                    wordSpacing: "0.1em",
-                    padding: "0 2%",
-                  }}
-                >
-                  {verses.map((v) => (
-                    <span key={v.id}>
-                      {v.text_uthmani}
-                      <span
+                      <p
+                        dir="rtl"
                         style={{
                           fontFamily: '"Scheherazade New", "Amiri", serif',
-                          fontSize: "0.7em",
-                          color: verseMarkerColor,
-                          marginRight: "0.3em",
-                          marginLeft: "0.3em",
-                          verticalAlign: "middle",
+                          fontSize: "clamp(32px, 4.5vw, 54px)",
+                          color: headerAccent,
+                          lineHeight: 1.4,
+                          margin: 0,
                         }}
                       >
-                        ۝{toArabicNumerals(v.verse_number)}
-                      </span>
-                    </span>
-                  ))}
-                </div>
+                        {chapter.name_arabic}
+                      </p>
+                      <p
+                        style={{
+                          fontSize: "clamp(10px, 1.4vw, 13px)",
+                          color: isDark ? "#a0a0c0" : "#7f8c8d",
+                          marginTop: 6,
+                          letterSpacing: "0.08em",
+                          fontWeight: 600,
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        {chapter.name_simple} · {chapter.translated_name.name} · {chapter.verses_count} ayahs
+                      </p>
+                    </div>
 
-                <div className="mt-16" />
-              </>
-            )}
+                    {/* Bismillah */}
+                    {chapter.bismillah_pre && (
+                      <p
+                        dir="rtl"
+                        style={{
+                          fontFamily: '"Scheherazade New", "Amiri", serif',
+                          fontSize: "clamp(28px, 3.5vw, 46px)",
+                          color: bismillahColor,
+                          lineHeight: 2.2,
+                          textAlign: "center",
+                          marginTop: 24,
+                          marginBottom: 0,
+                        }}
+                      >
+                        بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Divider */}
+                  <div
+                    style={{
+                      height: 1,
+                      background: dividerColor,
+                      marginBottom: 40,
+                      marginLeft: "5%",
+                      marginRight: "5%",
+                    }}
+                  />
+
+                  {/* Verse text — flowing, continuous, RTL */}
+                  <div
+                    dir="rtl"
+                    style={{
+                      fontFamily: '"Scheherazade New", "Amiri", serif',
+                      fontSize: "clamp(26px, 2.8vw, 42px)",
+                      lineHeight: 2.8,
+                      color: textColor,
+                      textAlign: "justify",
+                      textJustify: "inter-word",
+                      wordSpacing: "0.12em",
+                      letterSpacing: "0.01em",
+                    }}
+                  >
+                    {verses.map((v) => (
+                      <span key={v.id}>
+                        {v.text_uthmani}
+                        <span
+                          style={{
+                            fontFamily: '"Scheherazade New", "Amiri", serif',
+                            fontSize: "0.65em",
+                            color: markerColor,
+                            margin: "0 0.35em",
+                            verticalAlign: "middle",
+                            display: "inline-block",
+                          }}
+                        >
+                          ۝{toArabicNumerals(v.verse_number)}
+                        </span>
+                      </span>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
 
-          {/* Drawing canvas — absolutely overlays text layer, same height */}
+          {/* Drawing canvas — absolutely overlays text layer */}
           <canvas
             ref={canvasRef}
             className="absolute top-0 left-0 cursor-crosshair"
-            style={{
-              touchAction: "none",
-              zIndex: 10,
-            }}
+            style={{ touchAction: "none", zIndex: 10 }}
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
@@ -255,8 +261,5 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
 
 function toArabicNumerals(n: number): string {
   const arabicDigits = ["٠", "١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩"];
-  return String(n)
-    .split("")
-    .map((d) => arabicDigits[parseInt(d)] ?? d)
-    .join("");
+  return String(n).split("").map((d) => arabicDigits[parseInt(d)] ?? d).join("");
 }
