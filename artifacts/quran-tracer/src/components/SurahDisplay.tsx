@@ -210,12 +210,12 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
                     dir="rtl"
                     style={{
                       fontFamily: '"Scheherazade New", "Amiri", serif',
-                      fontSize: "clamp(26px, 2.8vw, 42px)",
-                      lineHeight: 2.2,
+                      fontSize: "clamp(28px, 3vw, 44px)",
+                      lineHeight: 2.0,
                       color: textColor,
                       textAlign: "justify",
                       textJustify: "inter-word",
-                      wordSpacing: "0.12em",
+                      wordSpacing: "0.38em",
                       letterSpacing: "0.01em",
                     }}
                   >
