@@ -44,10 +44,17 @@ See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and pa
 - 15 pre-loaded verses from Al-Fatiha, Al-Ikhlas, Al-Falaq, An-Nas, Al-Baqarah, Al-Kawthar
 - Verse navigation: prev/next buttons + direct select list with Arabic preview
 
+**Data Source:**
+- Live Quran data from `api.quran.com/api/v4` (no auth required, public REST API)
+- Powered by the same data as the Quran MCP at https://mcp.quran.ai/
+- Translation ID 131 = Dr. Mustafa Khattab "The Clear Quran"
+- All 114 surahs with full Uthmani Arabic text, verse count, verse-by-verse navigation
+
 **Key Files:**
 - `src/pages/TracerPage.tsx` — main layout
 - `src/components/TracingCanvas.tsx` — canvas drawing engine
 - `src/components/Toolbar.tsx` — pen settings + actions panel
-- `src/components/VerseNav.tsx` — verse navigation panel
+- `src/components/VerseNav.tsx` — surah browser + verse navigation panel
 - `src/hooks/useCanvas.ts` — drawing logic, undo/redo, download
-- `src/data/verses.ts` — verse data (Arabic, transliteration, translation)
+- `src/hooks/useQuran.ts` — React hook for Quran API state
+- `src/services/quranApi.ts` — quran.com REST API client with caching
