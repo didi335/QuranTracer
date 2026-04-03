@@ -1,4 +1,4 @@
-import { useRef, useCallback, useEffect } from "react";
+import { useRef, useCallback, useEffect, RefObject } from "react";
 
 export interface PenSettings {
   color: string;
@@ -12,28 +12,28 @@ export interface Point {
   pressure?: number;
 }
 
-export function useCanvas(penSettings: PenSettings) {
+export function useCanvas(penSettings: PenSettings, containerRef: RefObject<HTMLElement | null>) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const isDrawing = useRef(false);
   const lastPoint = useRef<Point | null>(null);
   const history = useRef<ImageData[]>([]);
-  const MAX_HISTORY = 30;
+  const MAX_HISTORY = 50;
 
   const getContext = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return null;
-    return canvas.getContext("2d");
+    return canvas.getContext("2d", { willReadFrequently: true });
   }, []);
 
   const getCanvasPoint = useCallback(
     (clientX: number, clientY: number, pressure = 1): Point => {
       const canvas = canvasRef.current!;
       const rect = canvas.getBoundingClientRect();
-      const scaleX = canvas.width / rect.width;
-      const scaleY = canvas.height / rect.height;
+      const dpr = window.devicePixelRatio || 1;
+      // getBoundingClientRect accounts for scroll position automatically
       return {
-        x: (clientX - rect.left) * scaleX,
-        y: (clientY - rect.top) * scaleY,
+        x: (clientX - rect.left) * dpr,
+        y: (clientY - rect.top) * dpr,
         pressure,
       };
     },
@@ -63,13 +63,12 @@ export function useCanvas(penSettings: PenSettings) {
       ctx.save();
       ctx.globalAlpha = penSettings.opacity;
       ctx.strokeStyle = penSettings.color;
-      ctx.lineWidth = penSettings.thickness * (point.pressure ?? 1);
+      ctx.fillStyle = penSettings.color;
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
-
       ctx.beginPath();
-      ctx.arc(point.x, point.y, (penSettings.thickness * (point.pressure ?? 1)) / 2, 0, Math.PI * 2);
-      ctx.fillStyle = penSettings.color;
+      const r = (penSettings.thickness * (point.pressure ?? 0.5)) / 2;
+      ctx.arc(point.x, point.y, Math.max(r, 0.5), 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
     },
@@ -86,13 +85,12 @@ export function useCanvas(penSettings: PenSettings) {
       ctx.save();
       ctx.globalAlpha = penSettings.opacity;
       ctx.strokeStyle = penSettings.color;
-      ctx.lineWidth = penSettings.thickness * (point.pressure ?? 1);
+      ctx.lineWidth = penSettings.thickness * (point.pressure ?? 0.5) * (window.devicePixelRatio || 1);
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
 
       ctx.beginPath();
       ctx.moveTo(lastPoint.current.x, lastPoint.current.y);
-
       const midX = (lastPoint.current.x + point.x) / 2;
       const midY = (lastPoint.current.y + point.y) / 2;
       ctx.quadraticCurveTo(lastPoint.current.x, lastPoint.current.y, midX, midY);
@@ -113,12 +111,10 @@ export function useCanvas(penSettings: PenSettings) {
     const ctx = getContext();
     const canvas = canvasRef.current;
     if (!ctx || !canvas) return;
-
     if (history.current.length === 0) {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       return;
     }
-
     const lastState = history.current.pop()!;
     ctx.putImageData(lastState, 0, 0);
   }, [getContext]);
@@ -131,8 +127,15 @@ export function useCanvas(penSettings: PenSettings) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
   }, [getContext, saveToHistory]);
 
+  const clearHistory = useCallback(() => {
+    history.current = [];
+    const ctx = getContext();
+    const canvas = canvasRef.current;
+    if (ctx && canvas) ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }, [getContext]);
+
   const downloadAsImage = useCallback(
-    (textCanvasRef: React.RefObject<HTMLCanvasElement | null>, showText: boolean, verseName: string) => {
+    (textLayerRef: RefObject<HTMLElement | null>, showText: boolean, fileName: string) => {
       const drawingCanvas = canvasRef.current;
       if (!drawingCanvas) return;
 
@@ -143,15 +146,10 @@ export function useCanvas(penSettings: PenSettings) {
 
       exportCtx.fillStyle = "#FDFCF7";
       exportCtx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
-
-      if (showText && textCanvasRef.current) {
-        exportCtx.drawImage(textCanvasRef.current, 0, 0);
-      }
-
       exportCtx.drawImage(drawingCanvas, 0, 0);
 
       const link = document.createElement("a");
-      link.download = `quran-trace-${verseName.replace(/\s+/g, "-")}.png`;
+      link.download = `${fileName}.png`;
       link.href = exportCanvas.toDataURL("image/png");
       link.click();
     },
@@ -161,17 +159,11 @@ export function useCanvas(penSettings: PenSettings) {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-
     const preventScroll = (e: TouchEvent) => {
-      if (isDrawing.current) {
-        e.preventDefault();
-      }
+      if (isDrawing.current) e.preventDefault();
     };
-
     canvas.addEventListener("touchmove", preventScroll, { passive: false });
-    return () => {
-      canvas.removeEventListener("touchmove", preventScroll);
-    };
+    return () => canvas.removeEventListener("touchmove", preventScroll);
   }, []);
 
   return {
@@ -181,7 +173,9 @@ export function useCanvas(penSettings: PenSettings) {
     stopDrawing,
     undo,
     clear,
+    clearHistory,
     downloadAsImage,
     getCanvasPoint,
+    isDrawing,
   };
 }
