@@ -25,3 +25,29 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - `pnpm --filter @workspace/api-server run dev` — run API server locally
 
 See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.
+
+## Artifacts
+
+### Quran Tracer (`artifacts/quran-tracer`)
+- **Kind**: React + Vite web app
+- **Preview Path**: `/`
+- **Purpose**: iPad-optimized Quran tracing app for students
+
+**Features:**
+- Arabic text display using Scheherazade New / Amiri fonts (Google Fonts)
+- Dual-canvas system: text layer (render-only) + drawing layer (interactive)
+- Full pointer events API — supports Apple Pencil pressure, touch, and mouse
+- Pen settings: color presets + custom color picker, thickness (1–40px), opacity (5–100%)
+- Show/hide text toggle for tracing vs. memory practice
+- Undo (up to 30 steps), Clear, Save as PNG download
+- Light/dark mode
+- 15 pre-loaded verses from Al-Fatiha, Al-Ikhlas, Al-Falaq, An-Nas, Al-Baqarah, Al-Kawthar
+- Verse navigation: prev/next buttons + direct select list with Arabic preview
+
+**Key Files:**
+- `src/pages/TracerPage.tsx` — main layout
+- `src/components/TracingCanvas.tsx` — canvas drawing engine
+- `src/components/Toolbar.tsx` — pen settings + actions panel
+- `src/components/VerseNav.tsx` — verse navigation panel
+- `src/hooks/useCanvas.ts` — drawing logic, undo/redo, download
+- `src/data/verses.ts` — verse data (Arabic, transliteration, translation)
