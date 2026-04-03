@@ -211,7 +211,7 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
                     style={{
                       fontFamily: '"Scheherazade New", "Amiri", serif',
                       fontSize: "clamp(26px, 2.8vw, 42px)",
-                      lineHeight: 2.8,
+                      lineHeight: 2.2,
                       color: textColor,
                       textAlign: "justify",
                       textJustify: "inter-word",
