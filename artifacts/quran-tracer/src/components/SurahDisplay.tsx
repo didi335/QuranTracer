@@ -205,38 +205,113 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
                     }}
                   />
 
-                  {/* Verse text — flowing, continuous, RTL */}
-                  <div
-                    dir="rtl"
-                    style={{
-                      fontFamily: '"Amiri Quran", "Scheherazade New", "Amiri", serif',
-                      fontSize: "clamp(26px, 2.8vw, 40px)",
-                      lineHeight: 2.15,
-                      color: textColor,
-                      textAlign: "justify",
-                      textJustify: "inter-word",
-                      wordSpacing: "0.05em",
-                      letterSpacing: "0",
-                    }}
-                  >
-                    {verses.map((v) => (
-                      <span key={v.id}>
-                        {v.text_uthmani}
-                        <span
+                  {/* Verses */}
+                  {isMushafCenteredLayout(chapter.id, verses.length) ? (
+                    /* ── Mushaf centered layout (Fatihah + Baqarah opening) ── */
+                    <div
+                      style={{
+                        fontFamily: '"Amiri Quran", "Scheherazade New", "Amiri", serif',
+                        fontSize: "clamp(26px, 2.8vw, 40px)",
+                        color: textColor,
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: "clamp(10px, 1.8vw, 28px)",
+                      }}
+                    >
+                      {verses.map((v) => {
+                        const isCentered = chapter.id === 1 || v.verse_number <= 5;
+                        if (!isCentered) {
+                          // Remaining Baqarah verses flow normally
+                          return null;
+                        }
+                        return (
+                          <div
+                            key={v.id}
+                            dir="rtl"
+                            style={{
+                              textAlign: "center",
+                              lineHeight: 2.0,
+                              width: "100%",
+                            }}
+                          >
+                            <VerseMarker n={v.verse_number} isDark={isDark} />
+                            {" "}
+                            {v.text_uthmani}
+                          </div>
+                        );
+                      })}
+
+                      {/* Remaining Baqarah verses (6+) in flowing mode */}
+                      {chapter.id === 2 && verses.length > 5 && (
+                        <div
+                          dir="rtl"
                           style={{
-                            fontFamily: '"Scheherazade New", "Amiri", serif',
-                            fontSize: "0.65em",
-                            color: markerColor,
-                            margin: "0 0.35em",
-                            verticalAlign: "middle",
-                            display: "inline-block",
+                            fontFamily: '"Amiri Quran", "Scheherazade New", "Amiri", serif',
+                            fontSize: "clamp(26px, 2.8vw, 40px)",
+                            lineHeight: 2.15,
+                            color: textColor,
+                            textAlign: "justify",
+                            textJustify: "inter-word",
+                            wordSpacing: "0.05em",
+                            width: "100%",
+                            marginTop: 16,
                           }}
                         >
-                          ۝{toArabicNumerals(v.verse_number)}
+                          {verses.filter(v => v.verse_number > 5).map((v) => (
+                            <span key={v.id}>
+                              {v.text_uthmani}
+                              <span
+                                style={{
+                                  fontFamily: '"Scheherazade New", "Amiri", serif',
+                                  fontSize: "0.65em",
+                                  color: markerColor,
+                                  margin: "0 0.35em",
+                                  verticalAlign: "middle",
+                                  display: "inline-block",
+                                }}
+                              >
+                                ۝{toArabicNumerals(v.verse_number)}
+                              </span>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    /* ── Standard flowing text layout ── */
+                    <div
+                      dir="rtl"
+                      style={{
+                        fontFamily: '"Amiri Quran", "Scheherazade New", "Amiri", serif',
+                        fontSize: "clamp(26px, 2.8vw, 40px)",
+                        lineHeight: 2.15,
+                        color: textColor,
+                        textAlign: "justify",
+                        textJustify: "inter-word",
+                        wordSpacing: "0.05em",
+                        letterSpacing: "0",
+                      }}
+                    >
+                      {verses.map((v) => (
+                        <span key={v.id}>
+                          {v.text_uthmani}
+                          <span
+                            style={{
+                              fontFamily: '"Scheherazade New", "Amiri", serif',
+                              fontSize: "0.65em",
+                              color: markerColor,
+                              margin: "0 0.35em",
+                              verticalAlign: "middle",
+                              display: "inline-block",
+                            }}
+                          >
+                            ۝{toArabicNumerals(v.verse_number)}
+                          </span>
                         </span>
-                      </span>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </>
               )}
             </div>
@@ -262,4 +337,42 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
 function toArabicNumerals(n: number): string {
   const arabicDigits = ["٠", "١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩"];
   return String(n).split("").map((d) => arabicDigits[parseInt(d)] ?? d).join("");
+}
+
+/** Chapter IDs that get the centered per-verse Mushaf layout */
+function isMushafCenteredLayout(chapterId: number, _verseCount: number): boolean {
+  return chapterId === 1 || chapterId === 2;
+}
+
+/** Ornate verse end marker — styled circle with Arabic numeral */
+function VerseMarker({ n, isDark }: { n: number; isDark: boolean }) {
+  const outerRing = isDark ? "#d4af37" : "#b5451b";
+  const innerFill = isDark ? "rgba(212,175,55,0.12)" : "rgba(181,69,27,0.08)";
+  const textColor = isDark ? "#d4af37" : "#8b2500";
+  const size = "1.1em";
+
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: size,
+        height: size,
+        borderRadius: "50%",
+        border: `2px solid ${outerRing}`,
+        background: innerFill,
+        color: textColor,
+        fontSize: "0.5em",
+        fontFamily: '"Amiri Quran", "Scheherazade New", serif',
+        fontWeight: 700,
+        verticalAlign: "middle",
+        margin: "0 0.2em",
+        flexShrink: 0,
+        lineHeight: 1,
+      }}
+    >
+      {toArabicNumerals(n)}
+    </span>
+  );
 }
