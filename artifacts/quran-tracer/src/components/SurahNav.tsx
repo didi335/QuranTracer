@@ -46,7 +46,7 @@ export function SurahNav({
           <p
             dir="rtl"
             className="mt-0.5"
-            style={{ fontFamily: '"Scheherazade New", "Amiri", serif', fontSize: "1.2rem", color: isDark ? "#d4af37" : "#1a5276" }}
+            style={{ fontFamily: '"Amiri Quran", "Scheherazade New", "Amiri", serif', fontSize: "1.2rem", color: isDark ? "#d4af37" : "#1a5276" }}
           >
             {currentChapter.name_arabic}
           </p>
@@ -89,7 +89,7 @@ export function SurahNav({
             >
               <div className="flex items-center justify-between gap-2">
                 <span className="font-semibold">{ch.id}. {ch.name_simple}</span>
-                <span dir="rtl" style={{ fontFamily: '"Scheherazade New", "Amiri", serif', fontSize: "1rem", flexShrink: 0 }}>
+                <span dir="rtl" style={{ fontFamily: '"Amiri Quran", "Scheherazade New", "Amiri", serif', fontSize: "1rem", flexShrink: 0 }}>
                   {ch.name_arabic}
                 </span>
               </div>

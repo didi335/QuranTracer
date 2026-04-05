@@ -152,7 +152,7 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
                       <p
                         dir="rtl"
                         style={{
-                          fontFamily: '"Scheherazade New", "Amiri", serif',
+                          fontFamily: '"Amiri Quran", "Scheherazade New", "Amiri", serif',
                           fontSize: "clamp(32px, 4.5vw, 54px)",
                           color: headerAccent,
                           lineHeight: 1.4,
@@ -180,7 +180,7 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
                       <p
                         dir="rtl"
                         style={{
-                          fontFamily: '"Scheherazade New", "Amiri", serif',
+                          fontFamily: '"Amiri Quran", "Scheherazade New", "Amiri", serif',
                           fontSize: "clamp(28px, 3.5vw, 46px)",
                           color: bismillahColor,
                           lineHeight: 2.2,
@@ -209,14 +209,14 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
                   <div
                     dir="rtl"
                     style={{
-                      fontFamily: '"Scheherazade New", "Amiri", serif',
-                      fontSize: "clamp(28px, 3vw, 44px)",
-                      lineHeight: 2.0,
+                      fontFamily: '"Amiri Quran", "Scheherazade New", "Amiri", serif',
+                      fontSize: "clamp(26px, 2.8vw, 40px)",
+                      lineHeight: 2.15,
                       color: textColor,
                       textAlign: "justify",
                       textJustify: "inter-word",
-                      wordSpacing: "0.38em",
-                      letterSpacing: "0.01em",
+                      wordSpacing: "0.05em",
+                      letterSpacing: "0",
                     }}
                   >
                     {verses.map((v) => (
