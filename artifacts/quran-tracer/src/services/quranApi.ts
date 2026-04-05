@@ -15,6 +15,7 @@ export interface Verse {
   verse_number: number;
   verse_key: string;
   text_uthmani: string;
+  page_number: number;
   translations?: { text: string }[];
 }
 
@@ -41,7 +42,7 @@ export async function fetchVerses(chapterId: number): Promise<Verse[]> {
 
   const params = new URLSearchParams({
     language: "en",
-    fields: "text_uthmani",
+    fields: "text_uthmani,page_number",
     translations: "131",
     per_page: "300",
     page: "1",

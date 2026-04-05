@@ -1,0 +1,58 @@
+Fix the Quran text rendering so it matches a proper Mushaf-style layout similar to Quran.com, especially for Surah Al-Fatiha and the first page of Surah Al-Baqarah.
+
+1. Correct Ayah Flow (CRITICAL):
+- DO NOT place each ayah on a new separate line.
+- Render ayahs continuously in paragraph form, flowing naturally from right to left.
+- Ayahs should appear inline, one after another, like a real Quran page.
+- Maintain proper Arabic spacing and alignment.
+
+2. Arabic Text Direction:
+- Ensure full right-to-left (RTL) layout.
+- Align text to the right.
+- Use proper Arabic shaping and ligatures (no broken letters).
+
+3. Line Wrapping:
+- Allow text to wrap naturally across multiple lines.
+- Do NOT break layout awkwardly between ayahs.
+- Keep consistent line spacing for readability.
+
+4. Ayah Numbers Styling:
+- Change ayah numbers from red to blue to match the app theme.
+- Style them clearly but subtly:
+   - Slightly smaller than the main text
+   - Positioned inline after each ayah
+   - Proper spacing so they don’t crowd the text
+
+5. Mushaf-Like Appearance:
+- Try to visually match the feel of a real Quran page:
+   - Balanced line lengths
+   - Even spacing
+   - Clean margins
+- Avoid a “list” or “stacked verse” look.
+
+6. Specific Pages to Fix:
+- Surah Al-Fatiha (full Surah layout)
+- First page of Surah Al-Baqarah
+- Ensure both display correctly as continuous text blocks
+
+7. Page Numbering:
+- Add page numbers to the layout.
+- Display page number clearly (e.g., bottom center or corner).
+- Ensure page numbers update correctly when navigating.
+
+8. Font and Rendering:
+- Use a high-quality Arabic Quran font (Uthmani style if possible).
+- Ensure no distortion or stretching of text.
+
+9. Performance:
+- Rendering should remain smooth even with full-page text.
+
+Important:
+- Preserve the correctness and respect of the Quran text.
+- Do NOT distort, rearrange, or incorrectly segment ayahs.
+
+Output:
+- Fix the rendering logic so ayahs flow correctly.
+- Update styling for ayah numbers (blue).
+- Add page numbering system.
+- Provide updated working code and explanation of layout changes.
