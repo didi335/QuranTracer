@@ -211,12 +211,12 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
                     <div
                       style={{
                         fontFamily: '"Amiri Quran", "Scheherazade New", "Amiri", serif',
-                        fontSize: "clamp(26px, 2.8vw, 40px)",
+                        fontSize: "clamp(28px, 3.2vw, 46px)",
                         color: textColor,
                         display: "flex",
                         flexDirection: "column",
                         alignItems: "center",
-                        gap: "clamp(10px, 1.8vw, 28px)",
+                        gap: "clamp(14px, 2.2vw, 36px)",
                       }}
                     >
                       {verses.map((v) => {
@@ -228,16 +228,22 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
                         return (
                           <div
                             key={v.id}
-                            dir="rtl"
                             style={{
                               textAlign: "center",
-                              lineHeight: 2.0,
+                              lineHeight: 1,
                               width: "100%",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              gap: "0.4em",
+                              padding: "0.35em 0",
                             }}
                           >
+                            {/* In Mushaf: marker is at the END of the verse (left side) */}
                             <VerseMarker n={v.verse_number} isDark={isDark} />
-                            {" "}
-                            {v.text_uthmani}
+                            <span dir="rtl" style={{ lineHeight: 1.5 }}>
+                              {v.text_uthmani}
+                            </span>
                           </div>
                         );
                       })}
@@ -344,12 +350,13 @@ function isMushafCenteredLayout(chapterId: number, _verseCount: number): boolean
   return chapterId === 1 || chapterId === 2;
 }
 
-/** Ornate verse end marker — styled circle with Arabic numeral */
+/** Ornate Mushaf-style verse marker — concentric rings with Arabic numeral */
 function VerseMarker({ n, isDark }: { n: number; isDark: boolean }) {
-  const outerRing = isDark ? "#d4af37" : "#b5451b";
-  const innerFill = isDark ? "rgba(212,175,55,0.12)" : "rgba(181,69,27,0.08)";
-  const textColor = isDark ? "#d4af37" : "#8b2500";
-  const size = "1.1em";
+  // Colours matching quran.com's marker palette
+  const outerColor  = isDark ? "#c9903a" : "#c0392b";
+  const middleColor = isDark ? "#d4af37" : "#e74c3c";
+  const innerFill   = isDark ? "#1a1a2e" : "#ffffff";
+  const numColor    = isDark ? "#f0d080" : "#c0392b";
 
   return (
     <span
@@ -357,22 +364,45 @@ function VerseMarker({ n, isDark }: { n: number; isDark: boolean }) {
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
-        width: size,
-        height: size,
-        borderRadius: "50%",
-        border: `2px solid ${outerRing}`,
-        background: innerFill,
-        color: textColor,
-        fontSize: "0.5em",
-        fontFamily: '"Amiri Quran", "Scheherazade New", serif',
-        fontWeight: 700,
-        verticalAlign: "middle",
-        margin: "0 0.2em",
+        // outer decorative ring via box-shadow
+        width:  "1.6em",
+        height: "1.6em",
         flexShrink: 0,
-        lineHeight: 1,
+        position: "relative",
       }}
     >
-      {toArabicNumerals(n)}
+      {/* SVG-drawn concentric ring marker */}
+      <svg
+        viewBox="0 0 40 40"
+        width="100%"
+        height="100%"
+        style={{ position: "absolute", inset: 0 }}
+        aria-hidden="true"
+      >
+        {/* outer dashed/dotted ring */}
+        <circle cx="20" cy="20" r="19" fill="none" stroke={outerColor} strokeWidth="1.2" strokeDasharray="2.5 2.2" />
+        {/* middle solid ring */}
+        <circle cx="20" cy="20" r="15.5" fill="none" stroke={middleColor} strokeWidth="1.8" />
+        {/* inner filled circle */}
+        <circle cx="20" cy="20" r="12" fill={isDark ? "rgba(212,175,55,0.15)" : "rgba(192,57,43,0.07)"} stroke={outerColor} strokeWidth="1" />
+        {/* centre fill */}
+        <circle cx="20" cy="20" r="9.5" fill={innerFill} />
+      </svg>
+      {/* number */}
+      <span
+        style={{
+          position: "relative",
+          zIndex: 1,
+          fontSize: "0.42em",
+          fontFamily: '"Amiri Quran", "Scheherazade New", serif',
+          fontWeight: 700,
+          color: numColor,
+          lineHeight: 1,
+          letterSpacing: 0,
+        }}
+      >
+        {toArabicNumerals(n)}
+      </span>
     </span>
   );
 }
