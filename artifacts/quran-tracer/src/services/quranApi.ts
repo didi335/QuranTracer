@@ -12,19 +12,29 @@ export interface Chapter {
   bismillah_pre: boolean;
 }
 
+export interface Word {
+  id:             number;
+  position:       number;
+  code_v2:        string;  // character code for QPC v2 page font
+  text_uthmani:   string;
+  char_type_name: "word" | "end" | "pause" | string;
+  page_number:    number;
+  line_number:    number;
+}
+
 export interface Verse {
-  id: number;
+  id:           number;
   verse_number: number;
-  verse_key: string;          // e.g. "2:5"
-  chapter_id: number;         // extracted from verse_key
+  verse_key:    string;    // e.g. "2:5"
+  chapter_id:   number;   // extracted from verse_key
   text_uthmani: string;
-  page_number: number;
-  translations?: { text: string }[];
+  page_number:  number;
+  words:        Word[];
 }
 
 let _chaptersCache: Chapter[] | null = null;
-const _pageCache    = new Map<number, Verse[]>();
-const _chapterFirstPage = new Map<number, number>(); // chapterId → first page
+const _pageCache         = new Map<number, Verse[]>();
+const _chapterFirstPage  = new Map<number, number>();
 
 export async function fetchChapters(): Promise<Chapter[]> {
   if (_chaptersCache) return _chaptersCache;
@@ -39,15 +49,28 @@ export async function fetchVersesByPage(pageNumber: number): Promise<Verse[]> {
   if (_pageCache.has(pageNumber)) return _pageCache.get(pageNumber)!;
 
   const params = new URLSearchParams({
-    fields:   "text_uthmani,page_number,verse_key",
-    per_page: "50",
+    words:       "true",
+    word_fields: "code_v2,text_uthmani,line_number,page_number,char_type_name",
+    fields:      "text_uthmani,page_number,verse_key",
+    per_page:    "50",
   });
   const res = await fetch(`${BASE_URL}/verses/by_page/${pageNumber}?${params}`);
   if (!res.ok) throw new Error(`Failed to fetch page ${pageNumber}: ${res.status}`);
-  const data  = await res.json();
+  const data = await res.json();
+
   const verses = (data.verses as Array<Record<string, unknown>>).map((v) => {
-    const verse_key = String(v.verse_key ?? "");
+    const verse_key  = String(v.verse_key ?? "");
     const chapter_id = parseInt(verse_key.split(":")[0], 10) || 0;
+    const rawWords   = (v.words as Array<Record<string, unknown>>) ?? [];
+    const words: Word[] = rawWords.map((w) => ({
+      id:             w.id as number,
+      position:       w.position as number,
+      code_v2:        String(w.code_v2 ?? ""),
+      text_uthmani:   String(w.text_uthmani ?? ""),
+      char_type_name: String(w.char_type_name ?? "word"),
+      page_number:    (w.page_number as number) ?? pageNumber,
+      line_number:    (w.line_number as number) ?? 0,
+    }));
     return {
       id:           v.id as number,
       verse_number: v.verse_number as number,
@@ -55,25 +78,22 @@ export async function fetchVersesByPage(pageNumber: number): Promise<Verse[]> {
       chapter_id,
       text_uthmani: v.text_uthmani as string,
       page_number:  v.page_number as number,
+      words,
     } satisfies Verse;
   });
 
   _pageCache.set(pageNumber, verses);
 
-  // Cache the first-page for each chapter seen on this page
-  const firstChapterId = verses[0]?.chapter_id;
-  if (firstChapterId && !_chapterFirstPage.has(firstChapterId)) {
-    // Walk back: if first verse of this chapter is also on this page, record it
-    const firstChapterVerseOnPage = verses.find(v => v.chapter_id === firstChapterId);
-    if (firstChapterVerseOnPage?.verse_number === 1) {
-      _chapterFirstPage.set(firstChapterId, pageNumber);
+  // Cache first page for each chapter encountered
+  verses.forEach((v) => {
+    if (v.verse_number === 1 && !_chapterFirstPage.has(v.chapter_id)) {
+      _chapterFirstPage.set(v.chapter_id, v.page_number);
     }
-  }
+  });
 
   return verses;
 }
 
-/** Get the Mushaf page a chapter starts on. Fetches chapter verse 1 if not cached. */
 export async function fetchChapterFirstPage(chapterId: number): Promise<number> {
   if (_chapterFirstPage.has(chapterId)) return _chapterFirstPage.get(chapterId)!;
 
@@ -84,12 +104,8 @@ export async function fetchChapterFirstPage(chapterId: number): Promise<number> 
   });
   const res = await fetch(`${BASE_URL}/verses/by_chapter/${chapterId}?${params}`);
   if (!res.ok) throw new Error(`Failed to fetch chapter ${chapterId} first page`);
-  const data = await res.json();
-  const pageNum = data.verses?.[0]?.page_number as number ?? 1;
+  const data   = await res.json();
+  const pageNum = (data.verses?.[0]?.page_number as number) ?? 1;
   _chapterFirstPage.set(chapterId, pageNum);
   return pageNum;
-}
-
-export function getVerseKey(chapterId: number, verseNumber: number) {
-  return `${chapterId}:${verseNumber}`;
 }

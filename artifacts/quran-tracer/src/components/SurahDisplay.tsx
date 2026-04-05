@@ -1,5 +1,8 @@
-import { useEffect, useRef, useCallback, forwardRef, useImperativeHandle, useMemo } from "react";
-import { Verse, Chapter } from "@/services/quranApi";
+import {
+  useEffect, useRef, useCallback, forwardRef,
+  useImperativeHandle, useMemo,
+} from "react";
+import { Verse, Chapter, Word } from "@/services/quranApi";
 import { useCanvas, PenSettings } from "@/hooks/useCanvas";
 
 interface SurahDisplayProps {
@@ -17,17 +20,39 @@ export interface SurahDisplayHandle {
   download: () => void;
 }
 
-const ARABIC_FONT = '"Amiri Quran", "Scheherazade New", "Amiri", serif';
+/* ── QPC font CDN ─────────────────────────────────────────── */
+const QPC_CDN = "https://static-cdn.tarteel.ai/qul/fonts/quran_fonts/v2/woff2";
+
+/** Inject @font-face for the page-specific QPC font, keyed by page. */
+function injectPageFont(page: number) {
+  const id = `qpc-font-p${page}`;
+  if (document.getElementById(id)) return;
+  const style = document.createElement("style");
+  style.id = id;
+  style.textContent = `
+    @font-face {
+      font-family: "QPC_P${page}";
+      src: url("${QPC_CDN}/p${page}.woff2?v=3.1") format("woff2");
+      font-display: swap;
+    }
+  `;
+  document.head.appendChild(style);
+}
 
 export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
   function SurahDisplay({ chapters, verses, currentPage, showText, penSettings, isDark }, ref) {
     const textLayerRef = useRef<HTMLDivElement>(null);
     const scrollRef    = useRef<HTMLDivElement>(null);
 
-    const { canvasRef, startDrawing, draw, stopDrawing, undo, clear, clearHistory, downloadAsImage, getCanvasPoint } =
-      useCanvas(penSettings, scrollRef);
+    const {
+      canvasRef, startDrawing, draw, stopDrawing,
+      undo, clear, clearHistory, downloadAsImage, getCanvasPoint,
+    } = useCanvas(penSettings, scrollRef);
 
-    /* ── Canvas sizing ─────────────────────────────────────── */
+    /* ── Inject QPC font for this page ─────────────────────── */
+    useEffect(() => { injectPageFont(currentPage); }, [currentPage]);
+
+    /* ── Canvas sync ────────────────────────────────────────── */
     const syncCanvasSize = useCallback(() => {
       const canvas    = canvasRef.current;
       const textLayer = textLayerRef.current;
@@ -35,7 +60,7 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
       const dpr = window.devicePixelRatio || 1;
       const w   = textLayer.offsetWidth;
       const h   = textLayer.offsetHeight;
-      if (w === 0 || h === 0) return;
+      if (!w || !h) return;
       const ctx   = canvas.getContext("2d", { willReadFrequently: true });
       let saved: ImageData | null = null;
       if (ctx && canvas.width > 0 && canvas.height > 0) {
@@ -45,13 +70,13 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
       canvas.height       = h * dpr;
       canvas.style.width  = `${w}px`;
       canvas.style.height = `${h}px`;
-      if (saved && ctx) { try { ctx.putImageData(saved, 0, 0); } catch { /* ok */ } }
+      if (saved && ctx) { try { ctx.putImageData(saved, 0, 0); } catch { /**/ } }
     }, [canvasRef]);
 
     useEffect(() => {
       clearHistory();
-      const id = setTimeout(() => syncCanvasSize(), 80);
-      return () => clearTimeout(id);
+      const t = setTimeout(() => syncCanvasSize(), 120);
+      return () => clearTimeout(t);
     }, [currentPage, clearHistory, syncCanvasSize]);
 
     useEffect(() => {
@@ -62,64 +87,97 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
       return () => ro.disconnect();
     }, [syncCanvasSize]);
 
-    useImperativeHandle(ref, () => ({
-      undo,
-      clear,
-      download: () => downloadAsImage(textLayerRef, showText, `quran-page-${currentPage}`),
-    }));
-
-    /* ── Pointer events ────────────────────────────────────── */
-    const onDown   = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
+    /* ── Pointer events ─────────────────────────────────────── */
+    const onDown = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
       if (e.pointerType === "touch" && !e.isPrimary) return;
       e.preventDefault();
       startDrawing(getCanvasPoint(e.clientX, e.clientY, e.pressure > 0 ? e.pressure : 0.5));
       (e.target as HTMLCanvasElement).setPointerCapture(e.pointerId);
     }, [startDrawing, getCanvasPoint]);
 
-    const onMove   = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
+    const onMove = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
       if (e.pointerType === "touch" && !e.isPrimary) return;
       e.preventDefault();
       draw(getCanvasPoint(e.clientX, e.clientY, e.pressure > 0 ? e.pressure : 0.5));
     }, [draw, getCanvasPoint]);
 
-    const onUp     = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
+    const onUp = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
       e.preventDefault(); stopDrawing();
     }, [stopDrawing]);
 
-    /* ── Derived colours ───────────────────────────────────── */
-    const textColor    = isDark ? "rgba(238,228,205,0.94)" : "rgba(12,12,22,0.90)";
-    const accentColor  = isDark ? "#d4af37"                : "#1a5276";
-    const headerBg     = isDark ? "rgba(212,175,55,0.08)"  : "rgba(26,82,118,0.05)";
-    const headerBorder = isDark ? "rgba(212,175,55,0.22)"  : "rgba(26,82,118,0.14)";
-    const divColor     = isDark ? "rgba(212,175,55,0.12)"  : "rgba(26,82,118,0.08)";
-    const markerRing   = isDark ? "#4a7fbe"                : "#1a5276";
-    const markerFill   = isDark ? "rgba(74,127,190,0.12)"  : "rgba(26,82,118,0.07)";
-    const markerNum    = isDark ? "#7ab0e8"                : "#1a5276";
+    useImperativeHandle(ref, () => ({
+      undo,
+      clear,
+      download: () => downloadAsImage(textLayerRef, showText, `quran-page-${currentPage}`),
+    }));
 
-    /* ── Chapter lookup ────────────────────────────────────── */
+    /* ── Chapter map ────────────────────────────────────────── */
     const chapterMap = useMemo(() => {
       const m = new Map<number, Chapter>();
       chapters.forEach(c => m.set(c.id, c));
       return m;
     }, [chapters]);
 
-    /* ── Group verses by chapter segments ──────────────────── */
-    type Segment = { chapter: Chapter | null; verses: Verse[] };
-    const segments = useMemo<Segment[]>(() => {
-      const segs: Segment[] = [];
+    /* ── Build ordered lines with surah-break markers ───────── */
+    type PageLine = {
+      lineNumber:  number;
+      words:       Word[];
+      /** If this line is preceded by a new surah starting, fill this */
+      newChapter?: Chapter;
+    };
+
+    const pageLines = useMemo<PageLine[]>(() => {
+      // Collect all words across verses, in order
+      const allWords: (Word & { verse_number: number; chapter_id: number })[] = [];
       for (const v of verses) {
-        const last = segs[segs.length - 1];
-        if (!last || last.chapter?.id !== v.chapter_id) {
-          segs.push({ chapter: chapterMap.get(v.chapter_id) ?? null, verses: [v] });
-        } else {
-          last.verses.push(v);
+        for (const w of v.words) {
+          allWords.push({ ...w, verse_number: v.verse_number, chapter_id: v.chapter_id });
         }
       }
-      return segs;
+
+      // Group by line number (maintaining insertion order)
+      const lineMap = new Map<number, typeof allWords>();
+      for (const w of allWords) {
+        if (!lineMap.has(w.line_number)) lineMap.set(w.line_number, []);
+        lineMap.get(w.line_number)!.push(w);
+      }
+
+      // Build PageLine array with chapter-start markers
+      const result: PageLine[] = [];
+      let prevChapterId: number | null = null;
+
+      for (const [lineNumber, words] of lineMap) {
+        const firstWord   = words[0];
+        const chapterId   = firstWord.chapter_id;
+        let   newChapter: Chapter | undefined;
+
+        // Detect chapter boundary: first word of verse 1 of a new chapter
+        if (chapterId !== prevChapterId) {
+          // Check if verse 1 of this chapter starts on this line
+          const hasVerse1 = words.some(w => (w as typeof firstWord).verse_number === 1);
+          if (hasVerse1) {
+            newChapter = chapterMap.get(chapterId);
+          }
+        }
+
+        result.push({ lineNumber, words, newChapter });
+        prevChapterId = chapterId;
+      }
+
+      return result;
     }, [verses, chapterMap]);
 
+    /* ── Theme colours ──────────────────────────────────────── */
+    const bg          = isDark ? "#12122a" : "#fefdf8";
+    const textColor   = isDark ? "rgba(220,210,185,0.95)" : "#111827";
+    const accentColor = isDark ? "#d4af37"                : "#1a3a6e";
+    const bannerBg    = isDark ? "rgba(212,175,55,0.06)"  : "rgba(255,255,255,0.95)";
+    const bannerBorder= isDark ? "#4a3a10"                : "#1a3a6e";
+
+    const fontFamily  = `"QPC_P${currentPage}", "Amiri Quran", serif`;
+
     return (
-      <div className="relative w-full h-full" style={{ touchAction: "none" }}>
+      <div className="relative w-full h-full" style={{ background: bg, touchAction: "none" }}>
         <div
           ref={scrollRef}
           className="absolute inset-0 overflow-y-auto overflow-x-hidden"
@@ -132,87 +190,68 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
           >
             <div
               style={{
-                maxWidth: 860, margin: "0 auto",
-                paddingTop: 52, paddingBottom: 64,
-                paddingLeft: 52, paddingRight: 52,
+                maxWidth: 780, margin: "0 auto",
+                paddingTop: 56, paddingBottom: 64,
+                paddingLeft: 32, paddingRight: 32,
                 opacity:    showText ? 1 : 0,
                 transition: "opacity 0.25s ease",
               }}
             >
-              {segments.map((seg, si) => {
-                const ch          = seg.chapter;
-                const isFirstSeg  = si === 0;
-                const firstVerse  = seg.verses[0];
+              {pageLines.map((pl, i) => (
+                <div key={pl.lineNumber}>
+                  {/* ── Surah header banner ─────────────────── */}
+                  {pl.newChapter && (
+                    <SurahBanner
+                      chapter={pl.newChapter}
+                      isDark={isDark}
+                      bannerBg={bannerBg}
+                      bannerBorder={bannerBorder}
+                      accentColor={accentColor}
+                      isFirst={i === 0}
+                    />
+                  )}
 
-                // Show chapter header if this segment starts with verse 1
-                const showHeader = firstVerse?.verse_number === 1;
-
-                // Show bismillah: verse 1 of chapters that have bismillah_pre
-                // (not ch 1 Al-Fatihah and not ch 9 At-Tawbah)
-                const showBismillah = showHeader && ch?.bismillah_pre;
-
-                return (
-                  <div key={`${ch?.id ?? si}-${si}`}>
-                    {/* Chapter header — shown when surah starts on this page */}
-                    {showHeader && ch && (
-                      <div className="text-center" style={{ marginBottom: isFirstSeg ? 28 : 0, marginTop: isFirstSeg ? 0 : 40 }}>
-                        <div
-                          className="inline-block px-8 py-3 rounded-2xl"
-                          style={{ background: headerBg, border: `1px solid ${headerBorder}` }}
-                        >
-                          <p dir="rtl" style={{ fontFamily: ARABIC_FONT, fontSize: "clamp(26px, 3.5vw, 44px)", color: accentColor, lineHeight: 1.4, margin: 0 }}>
-                            {ch.name_arabic}
-                          </p>
-                          <p style={{ fontSize: "clamp(10px, 1.2vw, 12px)", color: isDark ? "#8888aa" : "#7f8c8d", marginTop: 4, letterSpacing: "0.08em", fontWeight: 600, textTransform: "uppercase" }}>
-                            {ch.name_simple} · {ch.translated_name.name} · {ch.verses_count} ayahs
-                          </p>
-                        </div>
-
-                        {showBismillah && (
-                          <p dir="rtl" style={{ fontFamily: ARABIC_FONT, fontSize: "clamp(22px, 2.8vw, 38px)", color: accentColor, lineHeight: 2, textAlign: "center", marginTop: 16, marginBottom: 0, opacity: 0.85 }}>
-                            بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ
-                          </p>
-                        )}
-
-                        {/* Divider */}
-                        <div style={{ height: 1, background: divColor, margin: "20px 8% 28px" }} />
-                      </div>
-                    )}
-
-                    {/* Chapter divider mid-page (when surah continues from previous page, no header) */}
-                    {!showHeader && !isFirstSeg && (
-                      <div style={{ height: 1, background: divColor, margin: "32px 8% 28px" }} />
-                    )}
-
-                    {/* ── Flowing verse text ── */}
-                    <p
-                      dir="rtl"
-                      style={{
-                        fontFamily:    ARABIC_FONT,
-                        fontSize:      "clamp(26px, 2.8vw, 40px)",
-                        lineHeight:    2.2,
-                        color:         textColor,
-                        textAlign:     "justify",
-                        textAlignLast: "right",
-                        wordSpacing:   "0.06em",
-                        margin:        0,
-                        marginBottom:  si < segments.length - 1 ? 0 : 0,
-                      }}
-                    >
-                      {seg.verses.map((v) => (
-                        <span key={v.id}>
-                          {v.text_uthmani}
-                          <AyahMarker n={v.verse_number} ring={markerRing} fill={markerFill} num={markerNum} />
-                        </span>
-                      ))}
-                    </p>
+                  {/* ── Mushaf line ─────────────────────────── */}
+                  <div
+                    dir="rtl"
+                    style={{
+                      fontFamily,
+                      fontSize:      "clamp(28px, 3.2vw, 46px)",
+                      lineHeight:    1,
+                      color:         textColor,
+                      textAlign:     "center",
+                      paddingTop:    "0.55em",
+                      paddingBottom: "0.35em",
+                      letterSpacing: 0,
+                      direction:     "rtl",
+                      unicodeBidi:   "bidi-override",
+                    }}
+                  >
+                    {pl.words.map((w, wi) => (
+                      <span
+                        key={w.id}
+                        style={{
+                          color: w.char_type_name === "end" ? accentColor : textColor,
+                          marginInlineStart: wi > 0 ? "0.05em" : 0,
+                        }}
+                      >
+                        {w.code_v2}
+                      </span>
+                    ))}
                   </div>
-                );
-              })}
+                </div>
+              ))}
 
               {/* Page number */}
-              <div style={{ marginTop: 40, textAlign: "center", color: isDark ? "#5a5a8a" : "#b0aaa0", fontSize: "clamp(11px, 1.1vw, 13px)", fontWeight: 500, letterSpacing: "0.06em" }}>
-                — {currentPage} —
+              <div
+                style={{
+                  marginTop: 36, textAlign: "center",
+                  fontFamily: "'Amiri', serif",
+                  color:   isDark ? "#4a4a6a" : "#9a9080",
+                  fontSize: 13, letterSpacing: "0.05em",
+                }}
+              >
+                ━ {currentPage} ━
               </div>
             </div>
           </div>
@@ -234,26 +273,113 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
   }
 );
 
-/* ── Inline ayah end-marker ─────────────────────────────────── */
-function AyahMarker({ n, ring, fill, num }: { n: number; ring: string; fill: string; num: string }) {
+/* ── Surah banner component ────────────────────────────────── */
+function SurahBanner({
+  chapter, isDark, bannerBg, bannerBorder, accentColor, isFirst,
+}: {
+  chapter:      Chapter;
+  isDark:       boolean;
+  bannerBg:     string;
+  bannerBorder: string;
+  accentColor:  string;
+  isFirst:      boolean;
+}) {
+  const textShadowColor = isDark ? "rgba(0,0,0,0.6)" : "rgba(26,58,110,0.12)";
+  const subtitleColor   = isDark ? "#8888aa"          : "#6b7280";
+
   return (
-    <span
-      aria-label={`Ayah ${n}`}
-      style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", position: "relative", width: "1.4em", height: "1.4em", verticalAlign: "middle", margin: "0 0.25em", flexShrink: 0 }}
-    >
-      <svg viewBox="0 0 38 38" width="100%" height="100%" style={{ position: "absolute", inset: 0 }} aria-hidden="true">
-        <circle cx="19" cy="19" r="17.5" fill="none" stroke={ring} strokeWidth="0.9" strokeDasharray="2.3 2" opacity="0.55" />
-        <circle cx="19" cy="19" r="14"   fill="none" stroke={ring} strokeWidth="1.4" opacity="0.80" />
-        <circle cx="19" cy="19" r="10.5" fill={fill} />
-      </svg>
-      <span style={{ position: "relative", zIndex: 1, fontSize: "0.36em", fontFamily: ARABIC_FONT, fontWeight: 700, color: num, lineHeight: 1 }}>
-        {toArabicNumerals(n)}
-      </span>
-    </span>
+    <div style={{ marginBottom: 20, marginTop: isFirst ? 0 : 40 }}>
+      {/* Ornamental banner */}
+      <div
+        style={{
+          position: "relative",
+          background: bannerBg,
+          border: `2px solid ${bannerBorder}`,
+          borderRadius: 6,
+          padding: "10px 64px",
+          textAlign: "center",
+          boxShadow: `0 2px 12px ${textShadowColor}`,
+          overflow: "hidden",
+        }}
+      >
+        {/* Left ornament */}
+        <span style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)" }}>
+          <OrnamentLeft color={bannerBorder} />
+        </span>
+        {/* Right ornament */}
+        <span style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%) scaleX(-1)" }}>
+          <OrnamentLeft color={bannerBorder} />
+        </span>
+
+        {/* Top border line */}
+        <div style={{ position: "absolute", top: 6, left: 40, right: 40, height: 1, background: bannerBorder, opacity: 0.35 }} />
+        {/* Bottom border line */}
+        <div style={{ position: "absolute", bottom: 6, left: 40, right: 40, height: 1, background: bannerBorder, opacity: 0.35 }} />
+
+        {/* Surah name in Arabic */}
+        <div
+          dir="rtl"
+          style={{
+            fontFamily: '"Amiri Quran", "Amiri", serif',
+            fontSize:   "clamp(22px, 2.6vw, 34px)",
+            color:      accentColor,
+            lineHeight: 1.6,
+            fontWeight: "bold",
+            letterSpacing: 0,
+          }}
+        >
+          سُورَةُ {chapter.name_arabic}
+        </div>
+
+        {/* Sub-line: transliteration · revelation · verse count */}
+        <div style={{ fontSize: 11, color: subtitleColor, marginTop: 2, letterSpacing: "0.07em", fontWeight: 500 }}>
+          {chapter.name_simple.toUpperCase()} · {chapter.revelation_place === "makkah" ? "MAKKI" : "MADANI"} · {chapter.verses_count} AYAHS
+        </div>
+      </div>
+
+      {/* Bismillah line — shown for all chapters except 1 (Al-Fatihah) and 9 (At-Tawbah) */}
+      {chapter.bismillah_pre && chapter.id !== 9 && (
+        <div
+          dir="rtl"
+          style={{
+            fontFamily:  '"Amiri Quran", "Amiri", serif',
+            fontSize:    "clamp(22px, 2.5vw, 34px)",
+            color:       accentColor,
+            textAlign:   "center",
+            lineHeight:  1.8,
+            marginTop:   14,
+            marginBottom: 4,
+            opacity: 0.92,
+          }}
+        >
+          بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ
+        </div>
+      )}
+    </div>
   );
 }
 
-function toArabicNumerals(n: number): string {
-  const d = ["٠","١","٢","٣","٤","٥","٦","٧","٨","٩"];
-  return String(n).split("").map(c => d[+c] ?? c).join("");
+/* ── Ornament SVG (left side of banner) ────────────────────── */
+function OrnamentLeft({ color }: { color: string }) {
+  return (
+    <svg width="44" height="36" viewBox="0 0 44 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+      {/* Outer circle */}
+      <circle cx="18" cy="18" r="15" stroke={color} strokeWidth="1.5" fill="none" opacity="0.7" />
+      {/* Inner circle */}
+      <circle cx="18" cy="18" r="9"  stroke={color} strokeWidth="1"   fill="none" opacity="0.6" />
+      {/* Center dot */}
+      <circle cx="18" cy="18" r="2.5" fill={color} opacity="0.8" />
+      {/* Petal top */}
+      <path d="M18 3 Q21 10 18 12 Q15 10 18 3Z" fill={color} opacity="0.5" />
+      {/* Petal bottom */}
+      <path d="M18 33 Q21 26 18 24 Q15 26 18 33Z" fill={color} opacity="0.5" />
+      {/* Leaf right arm */}
+      <path d="M36 18 Q31 14 28 18 Q31 22 36 18Z" fill={color} opacity="0.5" />
+      {/* Diagonal decoration */}
+      <path d="M38 6 Q36 12 34 14" stroke={color} strokeWidth="1.5" strokeLinecap="round" opacity="0.6" />
+      <path d="M38 30 Q36 24 34 22" stroke={color} strokeWidth="1.5" strokeLinecap="round" opacity="0.6" />
+      <circle cx="40" cy="5"  r="2" fill={color} opacity="0.6" />
+      <circle cx="40" cy="31" r="2" fill={color} opacity="0.6" />
+    </svg>
+  );
 }
