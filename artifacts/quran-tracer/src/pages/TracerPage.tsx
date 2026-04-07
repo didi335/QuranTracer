@@ -5,7 +5,6 @@ import { SurahNav } from "@/components/SurahNav";
 import { BookmarkPanel } from "@/components/BookmarkPanel";
 import { PenSettings } from "@/hooks/useCanvas";
 import { useQuran } from "@/hooks/useQuran";
-import { useAuth } from "@/hooks/useAuth";
 import { useBookmarks } from "@/hooks/useBookmarks";
 import { TOTAL_PAGES } from "@/services/quranApi";
 
@@ -25,12 +24,10 @@ export default function TracerPage() {
 
   const displayRef = useRef<SurahDisplayHandle>(null);
   const quran      = useQuran();
-  const auth       = useAuth();
-  const userId     = auth.tokenSet?.user?.sub ?? null;
 
   const {
-    bookmarks, isBookmarked, toggleBookmark, removeBookmark,
-  } = useBookmarks(userId, quran.chapters, quran.currentPage);
+    bookmarks, isBookmarked, toggleBookmark, removeBookmark, updateNote,
+  } = useBookmarks(quran.currentPage);
 
   // Derive current chapter from first verse for SurahNav highlight
   const currentChapterForNav = (() => {
@@ -77,7 +74,7 @@ export default function TracerPage() {
             accent={accent}
             iconColor={iconColor}
             onClick={() => leftOpen && leftTab === "bookmarks" ? setLeftOpen(false) : openLeft("bookmarks")}
-            badge={auth.loggedIn && bookmarks.length > 0 ? bookmarks.length : undefined}
+            badge={bookmarks.length > 0 ? bookmarks.length : undefined}
             icon={
               <path strokeLinecap="round" strokeLinejoin="round" d="M17 3H7a2 2 0 00-2 2v16l7-3 7 3V5a2 2 0 00-2-2z" />
             }
@@ -134,15 +131,11 @@ export default function TracerPage() {
                 bookmarks={bookmarks}
                 currentPage={quran.currentPage}
                 isBookmarked={isBookmarked}
-                loggedIn={auth.loggedIn}
-                loading={auth.loading}
                 isDark={isDark}
                 onToggle={toggleBookmark}
                 onGo={(page) => { quran.goToPage(page); setLeftOpen(false); }}
                 onRemove={removeBookmark}
-                onLogin={auth.login}
-                onLogout={auth.logout}
-                userName={auth.tokenSet?.user?.email ?? auth.tokenSet?.user?.name}
+                onUpdateNote={updateNote}
               />
             )}
           </div>
@@ -227,22 +220,18 @@ export default function TracerPage() {
           <Sep isDark={isDark} />
 
           {/* Bookmark */}
-          {auth.loggedIn && (
-            <>
-              <ActionBtn
-                onClick={toggleBookmark}
-                title={isBookmarked ? "Remove bookmark" : "Bookmark this page"}
-                color={isBookmarked ? accent : iconColor}
-              >
-                <path
-                  strokeLinecap="round" strokeLinejoin="round"
-                  fill={isBookmarked ? "currentColor" : "none"}
-                  d="M17 3H7a2 2 0 00-2 2v16l7-3 7 3V5a2 2 0 00-2-2z"
-                />
-              </ActionBtn>
-              <Sep isDark={isDark} />
-            </>
-          )}
+          <ActionBtn
+            onClick={toggleBookmark}
+            title={isBookmarked ? "Remove bookmark" : "Bookmark this page"}
+            color={isBookmarked ? accent : iconColor}
+          >
+            <path
+              strokeLinecap="round" strokeLinejoin="round"
+              fill={isBookmarked ? "currentColor" : "none"}
+              d="M17 3H7a2 2 0 00-2 2v16l7-3 7 3V5a2 2 0 00-2-2z"
+            />
+          </ActionBtn>
+          <Sep isDark={isDark} />
 
           {/* Page navigation */}
           <ActionBtn onClick={quran.prevPage} title="Previous page" color={iconColor} disabled={quran.currentPage <= 1}>
