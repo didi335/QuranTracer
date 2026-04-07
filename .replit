@@ -24,3 +24,9 @@ expertMode = true
 [postMerge]
 path = "scripts/post-merge.sh"
 timeoutMs = 20000
+
+[userenv]
+
+[userenv.shared]
+VITE_QURAN_OAUTH_CLIENT_ID = "b617db78-6c5f-41d2-bb6e-19d92b69b879"
+VITE_QURAN_OAUTH_ENDPOINT = "https://prelive-oauth2.quran.foundation"

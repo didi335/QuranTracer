@@ -2,16 +2,22 @@ import { useState, useRef, useCallback } from "react";
 import { SurahDisplay, SurahDisplayHandle } from "@/components/SurahDisplay";
 import { Toolbar } from "@/components/Toolbar";
 import { SurahNav } from "@/components/SurahNav";
+import { BookmarkPanel } from "@/components/BookmarkPanel";
 import { PenSettings } from "@/hooks/useCanvas";
 import { useQuran } from "@/hooks/useQuran";
+import { useAuth } from "@/hooks/useAuth";
+import { useBookmarks } from "@/hooks/useBookmarks";
 import { TOTAL_PAGES } from "@/services/quranApi";
 
-const PANEL_WIDTH = 280;
+const PANEL_WIDTH = 288;
+
+type LeftTab = "surahs" | "bookmarks";
 
 export default function TracerPage() {
   const [isDark,      setIsDark]      = useState(false);
   const [showText,    setShowText]    = useState(true);
   const [leftOpen,    setLeftOpen]    = useState(false);
+  const [leftTab,     setLeftTab]     = useState<LeftTab>("surahs");
   const [rightOpen,   setRightOpen]   = useState(false);
   const [penSettings, setPenSettings] = useState<PenSettings>({
     color: "#1a1a2e", thickness: 5, opacity: 0.90,
@@ -19,40 +25,63 @@ export default function TracerPage() {
 
   const displayRef = useRef<SurahDisplayHandle>(null);
   const quran      = useQuran();
+  const auth       = useAuth();
+  const userId     = auth.tokenSet?.user?.sub ?? null;
+
+  const {
+    bookmarks, isBookmarked, toggleBookmark, removeBookmark,
+  } = useBookmarks(userId, quran.chapters, quran.currentPage);
 
   // Derive current chapter from first verse for SurahNav highlight
-  const firstVerseChapterId = quran.verses[0]?.chapter_id ?? null;
-  const currentChapterForNav = firstVerseChapterId
-    ? quran.chapters.find(c => c.id === firstVerseChapterId) ?? null
-    : null;
+  const currentChapterForNav = (() => {
+    const cid = quran.verses[0]?.chapter_id ?? null;
+    return cid ? (quran.chapters.find(c => c.id === cid) ?? null) : null;
+  })();
 
   const closeAll = useCallback(() => { setLeftOpen(false); setRightOpen(false); }, []);
+
+  const openLeft = useCallback((tab: LeftTab) => {
+    setLeftTab(tab);
+    setLeftOpen(true);
+    setRightOpen(false);
+  }, []);
 
   const bg        = isDark ? "bg-[#0d0d1a]"                        : "bg-[#f0ebe0]";
   const panelBg   = isDark ? "bg-[#14142a] border-[#2a2a4e]"       : "bg-[#fdfcf7] border-[#ddd8c0]";
   const stripBg   = isDark ? "bg-[#1a1a2e] border-[#2a2a4e]"       : "bg-white border-[#e0dbd0]";
   const iconColor = isDark ? "#a0a0c0"                              : "#7f8c8d";
-  const accent    = isDark ? "#d4af37"                              : "#1a5276";
+  const accent    = isDark ? "#d4af37"                              : "#1a3a6e";
 
   return (
     <div className={`flex h-screen w-screen overflow-hidden select-none ${bg}`}>
 
-      {/* ── LEFT PANEL: Surah browser ── */}
+      {/* ── LEFT PANEL ── */}
       <div className="relative flex-shrink-0 flex" style={{ zIndex: 20 }}>
         {/* Slim strip */}
         <div
-          className={`flex flex-col items-center gap-4 py-4 border-r cursor-pointer transition-opacity duration-200 ${stripBg} ${leftOpen ? "opacity-0 pointer-events-none w-0" : "opacity-100 w-12"}`}
-          onClick={() => { setLeftOpen(true); setRightOpen(false); }}
-          title="Surah Browser"
+          className={`flex flex-col items-center gap-4 py-4 border-r transition-all duration-200 ${stripBg} ${leftOpen ? "opacity-0 pointer-events-none w-0 overflow-hidden" : "opacity-100 w-12"}`}
         >
-          <div style={{ color: accent }}>
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+          <StripBtn
+            title="Surah Browser"
+            active={leftOpen && leftTab === "surahs"}
+            accent={accent}
+            iconColor={iconColor}
+            onClick={() => leftOpen && leftTab === "surahs" ? setLeftOpen(false) : openLeft("surahs")}
+            icon={
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
-            </svg>
-          </div>
-          <span style={{ color: iconColor, writingMode: "vertical-rl", transform: "rotate(180deg)", fontSize: 9, letterSpacing: "0.15em", fontWeight: 600, textTransform: "uppercase" }}>
-            Surahs
-          </span>
+            }
+          />
+          <StripBtn
+            title="Bookmarks"
+            active={leftOpen && leftTab === "bookmarks"}
+            accent={accent}
+            iconColor={iconColor}
+            onClick={() => leftOpen && leftTab === "bookmarks" ? setLeftOpen(false) : openLeft("bookmarks")}
+            badge={auth.loggedIn && bookmarks.length > 0 ? bookmarks.length : undefined}
+            icon={
+              <path strokeLinecap="round" strokeLinejoin="round" d="M17 3H7a2 2 0 00-2 2v16l7-3 7 3V5a2 2 0 00-2-2z" />
+            }
+          />
         </div>
 
         {/* Expanded panel */}
@@ -60,21 +89,62 @@ export default function TracerPage() {
           className={`absolute top-0 left-0 h-full flex flex-col border-r shadow-xl overflow-hidden transition-all duration-300 ease-out ${panelBg}`}
           style={{ width: leftOpen ? PANEL_WIDTH : 0, opacity: leftOpen ? 1 : 0, pointerEvents: leftOpen ? "auto" : "none" }}
         >
-          <div className="flex items-center justify-between px-4 py-3 border-b flex-shrink-0" style={{ borderColor: isDark ? "#2a2a4e" : "#e0dbd0" }}>
-            <span className="text-sm font-bold" style={{ color: accent }}>Surah Browser</span>
-            <button onClick={() => setLeftOpen(false)} className="rounded-lg p-1.5" style={{ background: isDark ? "#2a2a4e" : "#f0ece0" }}>
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-            </button>
+          {/* Panel header with tabs */}
+          <div className="flex-shrink-0 border-b" style={{ borderColor: isDark ? "#2a2a4e" : "#e0dbd0" }}>
+            <div className="flex items-center justify-between px-4 py-2.5">
+              <div className="flex gap-0.5">
+                {(["surahs", "bookmarks"] as LeftTab[]).map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setLeftTab(tab)}
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition-all"
+                    style={{
+                      background: leftTab === tab ? accent : "transparent",
+                      color:      leftTab === tab ? "#fff" : iconColor,
+                    }}
+                  >
+                    {tab}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => setLeftOpen(false)}
+                className="rounded-lg p-1.5"
+                style={{ background: isDark ? "#2a2a4e" : "#f0ece0" }}
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
           </div>
+
           <div className="flex-1 overflow-y-auto p-3" style={{ width: PANEL_WIDTH }}>
-            <SurahNav
-              chapters={quran.chapters}
-              currentChapter={currentChapterForNav}
-              onSelectChapter={(ch) => { quran.selectChapter(ch); setLeftOpen(false); }}
-              loading={quran.loading}
-              isDark={isDark}
-              compact
-            />
+            {leftTab === "surahs" ? (
+              <SurahNav
+                chapters={quran.chapters}
+                currentChapter={currentChapterForNav}
+                onSelectChapter={(ch) => { quran.selectChapter(ch); setLeftOpen(false); }}
+                loading={quran.loading}
+                isDark={isDark}
+                compact
+              />
+            ) : (
+              <BookmarkPanel
+                bookmarks={bookmarks}
+                currentPage={quran.currentPage}
+                isBookmarked={isBookmarked}
+                loggedIn={auth.loggedIn}
+                loading={auth.loading}
+                isDark={isDark}
+                onToggle={toggleBookmark}
+                onGo={(page) => { quran.goToPage(page); setLeftOpen(false); }}
+                onRemove={removeBookmark}
+                onLogin={auth.login}
+                onLogout={auth.logout}
+                userName={auth.tokenSet?.user?.email ?? auth.tokenSet?.user?.name}
+              />
+            )}
           </div>
         </div>
       </div>
@@ -118,7 +188,11 @@ export default function TracerPage() {
         {/* Floating action bar */}
         <div
           className="absolute top-5 left-1/2 -translate-x-1/2 flex items-center gap-1 px-2 py-1.5 rounded-full shadow-md border pointer-events-auto"
-          style={{ background: isDark ? "rgba(20,20,42,0.92)" : "rgba(255,253,248,0.92)", borderColor: isDark ? "#2a2a4e" : "#d8d3c0", backdropFilter: "blur(8px)", zIndex: 15 }}
+          style={{
+            background: isDark ? "rgba(20,20,42,0.92)" : "rgba(255,253,248,0.92)",
+            borderColor: isDark ? "#2a2a4e" : "#d8d3c0",
+            backdropFilter: "blur(8px)", zIndex: 15,
+          }}
         >
           {/* Show/hide text */}
           <button
@@ -142,25 +216,41 @@ export default function TracerPage() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
           </ActionBtn>
           {/* Clear */}
-          <ActionBtn onClick={() => displayRef.current?.clear()} title="Clear" color={isDark ? "#ff9999" : "#c0392b"}>
+          <ActionBtn onClick={() => displayRef.current?.clear()} title="Clear canvas" color={isDark ? "#ff9999" : "#c0392b"}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
           </ActionBtn>
           {/* Save */}
-          <ActionBtn onClick={() => displayRef.current?.download()} title="Save image" color={isDark ? "#90ee90" : "#1b7a3e"}>
+          <ActionBtn onClick={() => displayRef.current?.download()} title="Save as image" color={isDark ? "#90ee90" : "#1b7a3e"}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
           </ActionBtn>
 
           <Sep isDark={isDark} />
 
+          {/* Bookmark */}
+          {auth.loggedIn && (
+            <>
+              <ActionBtn
+                onClick={toggleBookmark}
+                title={isBookmarked ? "Remove bookmark" : "Bookmark this page"}
+                color={isBookmarked ? accent : iconColor}
+              >
+                <path
+                  strokeLinecap="round" strokeLinejoin="round"
+                  fill={isBookmarked ? "currentColor" : "none"}
+                  d="M17 3H7a2 2 0 00-2 2v16l7-3 7 3V5a2 2 0 00-2-2z"
+                />
+              </ActionBtn>
+              <Sep isDark={isDark} />
+            </>
+          )}
+
           {/* Page navigation */}
           <ActionBtn onClick={quran.prevPage} title="Previous page" color={iconColor} disabled={quran.currentPage <= 1}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </ActionBtn>
-
-          <span className="text-xs font-mono px-1" style={{ color: iconColor, minWidth: 48, textAlign: "center" }}>
+          <span className="text-xs font-mono px-1" style={{ color: iconColor, minWidth: 52, textAlign: "center" }}>
             {quran.loading ? "…" : `${quran.currentPage} / ${TOTAL_PAGES}`}
           </span>
-
           <ActionBtn onClick={quran.nextPage} title="Next page" color={iconColor} disabled={quran.currentPage >= TOTAL_PAGES}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
           </ActionBtn>
@@ -186,7 +276,9 @@ export default function TracerPage() {
           <div className="flex items-center justify-between px-4 py-3 border-b flex-shrink-0" style={{ borderColor: isDark ? "#2a2a4e" : "#e0dbd0" }}>
             <span className="text-sm font-bold" style={{ color: accent }}>Pen Settings</span>
             <button onClick={() => setRightOpen(false)} className="rounded-lg p-1.5" style={{ background: isDark ? "#2a2a4e" : "#f0ece0" }}>
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
             </button>
           </div>
           <div className="flex-1 overflow-y-auto p-3" style={{ width: PANEL_WIDTH }}>
@@ -204,10 +296,9 @@ export default function TracerPage() {
             />
           </div>
         </div>
-
         {/* Slim strip */}
         <div
-          className={`flex flex-col items-center gap-4 py-4 border-l cursor-pointer transition-opacity duration-200 ${stripBg} ${rightOpen ? "opacity-0 pointer-events-none w-0" : "opacity-100 w-12"}`}
+          className={`flex flex-col items-center gap-4 py-4 border-l cursor-pointer transition-all duration-200 ${stripBg} ${rightOpen ? "opacity-0 pointer-events-none w-0 overflow-hidden" : "opacity-100 w-12"}`}
           onClick={() => { setRightOpen(true); setLeftOpen(false); }}
           title="Pen Settings"
         >
@@ -226,8 +317,35 @@ export default function TracerPage() {
   );
 }
 
+/* ── Tiny shared components ─────────────────────────────────── */
 function Sep({ isDark }: { isDark: boolean }) {
   return <div style={{ width: 1, height: 20, background: isDark ? "#2a2a4e" : "#d8d3c0", flexShrink: 0 }} />;
+}
+
+function StripBtn({
+  title, active, accent, iconColor, onClick, icon, badge,
+}: {
+  title: string; active: boolean; accent: string; iconColor: string;
+  onClick: () => void; icon: React.ReactNode; badge?: number;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      className="relative flex items-center justify-center w-8 h-8 rounded-xl transition-all"
+      style={{ background: active ? accent : "transparent", color: active ? "#fff" : accent }}
+    >
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>{icon}</svg>
+      {badge !== undefined && (
+        <span
+          className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-white flex items-center justify-center"
+          style={{ fontSize: 8, fontWeight: 700, background: accent }}
+        >
+          {badge > 9 ? "9+" : badge}
+        </span>
+      )}
+    </button>
+  );
 }
 
 function ActionBtn({
