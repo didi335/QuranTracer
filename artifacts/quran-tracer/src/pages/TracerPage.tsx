@@ -29,9 +29,9 @@ export default function TracerPage() {
     bookmarks, isBookmarked, toggleBookmark, removeBookmark, updateNote,
   } = useBookmarks(quran.currentPage);
 
-  // Derive current chapter from first verse for SurahNav highlight
   const currentChapterForNav = (() => {
-    const cid = quran.verses[0]?.chapter_id ?? null;
+    const verses = quran.getVerses(quran.currentPage);
+    const cid = verses[0]?.chapter_id ?? null;
     return cid ? (quran.chapters.find(c => c.id === cid) ?? null) : null;
   })();
 
@@ -43,18 +43,17 @@ export default function TracerPage() {
     setRightOpen(false);
   }, []);
 
-  const bg        = isDark ? "bg-[#0d0d1a]"                        : "bg-[#f0ebe0]";
-  const panelBg   = isDark ? "bg-[#14142a] border-[#2a2a4e]"       : "bg-[#fdfcf7] border-[#ddd8c0]";
-  const stripBg   = isDark ? "bg-[#1a1a2e] border-[#2a2a4e]"       : "bg-white border-[#e0dbd0]";
-  const iconColor = isDark ? "#a0a0c0"                              : "#7f8c8d";
-  const accent    = isDark ? "#d4af37"                              : "#1a3a6e";
+  const bg        = isDark ? "bg-[#0d0d1a]"                  : "bg-[#f0ebe0]";
+  const panelBg   = isDark ? "bg-[#14142a] border-[#2a2a4e]" : "bg-[#fdfcf7] border-[#ddd8c0]";
+  const stripBg   = isDark ? "bg-[#1a1a2e] border-[#2a2a4e]" : "bg-white border-[#e0dbd0]";
+  const iconColor = isDark ? "#a0a0c0"                        : "#7f8c8d";
+  const accent    = isDark ? "#d4af37"                        : "#1a3a6e";
 
   return (
     <div className={`flex h-screen w-screen overflow-hidden select-none ${bg}`}>
 
       {/* ── LEFT PANEL ── */}
       <div className="relative flex-shrink-0 flex" style={{ zIndex: 20 }}>
-        {/* Slim strip */}
         <div
           className={`flex flex-col items-center gap-4 py-4 border-r transition-all duration-200 ${stripBg} ${leftOpen ? "opacity-0 pointer-events-none w-0 overflow-hidden" : "opacity-100 w-12"}`}
         >
@@ -81,12 +80,10 @@ export default function TracerPage() {
           />
         </div>
 
-        {/* Expanded panel */}
         <div
           className={`absolute top-0 left-0 h-full flex flex-col border-r shadow-xl overflow-hidden transition-all duration-300 ease-out ${panelBg}`}
           style={{ width: leftOpen ? PANEL_WIDTH : 0, opacity: leftOpen ? 1 : 0, pointerEvents: leftOpen ? "auto" : "none" }}
         >
-          {/* Panel header with tabs */}
           <div className="flex-shrink-0 border-b" style={{ borderColor: isDark ? "#2a2a4e" : "#e0dbd0" }}>
             <div className="flex items-center justify-between px-4 py-2.5">
               <div className="flex gap-0.5">
@@ -148,44 +145,24 @@ export default function TracerPage() {
           className={`w-full h-full rounded-2xl overflow-hidden border shadow-inner ${isDark ? "bg-[#12122a] border-[#2a2a4e]" : "bg-[#fefdf8] border-[#d8d3c0]"}`}
           onClick={(e) => e.stopPropagation()}
         >
-          {quran.loading && quran.verses.length === 0 ? (
-            <div className="w-full h-full flex items-center justify-center">
-              <div className={`text-center ${isDark ? "text-[#a0a0c0]" : "text-[#7f8c8d]"}`}>
-                <svg className="animate-spin w-8 h-8 mx-auto mb-3" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-                <p className="text-sm font-medium">Loading Quran…</p>
-              </div>
-            </div>
-          ) : quran.error ? (
-            <div className="w-full h-full flex items-center justify-center">
-              <div className={`text-center p-6 rounded-xl mx-6 ${isDark ? "bg-[#2a1a1a] text-[#ff9999]" : "bg-[#fdecea] text-[#c0392b]"}`}>
-                <p className="font-semibold mb-1">Failed to load</p>
-                <p className="text-xs opacity-80">{quran.error}</p>
-              </div>
-            </div>
-          ) : (
-            <SurahDisplay
-              ref={displayRef}
-              chapters={quran.chapters}
-              verses={quran.verses}
-              currentPage={quran.currentPage}
-              showText={showText}
-              penSettings={penSettings}
-              isDark={isDark}
-              onNextPage={quran.nextPage}
-              onPrevPage={quran.prevPage}
-            />
-          )}
+          <SurahDisplay
+            ref={displayRef}
+            chapters={quran.chapters}
+            getVerses={quran.getVerses}
+            currentPage={quran.currentPage}
+            showText={showText}
+            penSettings={penSettings}
+            isDark={isDark}
+            onPageChange={quran.goToPage}
+          />
         </div>
 
         {/* Floating action bar */}
         <div
           className="absolute top-5 left-1/2 -translate-x-1/2 flex items-center gap-1 px-2 py-1.5 rounded-full shadow-md border pointer-events-auto"
           style={{
-            background: isDark ? "rgba(20,20,42,0.92)" : "rgba(255,253,248,0.92)",
-            borderColor: isDark ? "#2a2a4e" : "#d8d3c0",
+            background:   isDark ? "rgba(20,20,42,0.92)" : "rgba(255,253,248,0.92)",
+            borderColor:  isDark ? "#2a2a4e" : "#d8d3c0",
             backdropFilter: "blur(8px)", zIndex: 15,
           }}
         >
@@ -233,18 +210,16 @@ export default function TracerPage() {
               d="M17 3H7a2 2 0 00-2 2v16l7-3 7 3V5a2 2 0 00-2-2z"
             />
           </ActionBtn>
+
           <Sep isDark={isDark} />
 
-          {/* Page navigation */}
-          <ActionBtn onClick={quran.prevPage} title="Previous page" color={iconColor} disabled={quran.currentPage <= 1}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-          </ActionBtn>
-          <span className="text-xs font-mono px-1" style={{ color: iconColor, minWidth: 52, textAlign: "center" }}>
+          {/* Page indicator — read-only */}
+          <span
+            className="text-xs font-mono px-2"
+            style={{ color: iconColor, minWidth: 52, textAlign: "center" }}
+          >
             {quran.loading ? "…" : `${quran.currentPage} / ${TOTAL_PAGES}`}
           </span>
-          <ActionBtn onClick={quran.nextPage} title="Next page" color={iconColor} disabled={quran.currentPage >= TOTAL_PAGES}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-          </ActionBtn>
 
           <Sep isDark={isDark} />
 
