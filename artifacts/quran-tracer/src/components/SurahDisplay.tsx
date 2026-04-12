@@ -226,9 +226,8 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
       const absDy = Math.abs(dy);
       const absDx = Math.abs(dx);
 
-      if (absDy > SWIPE_Y_MIN && absDx < SWIPE_X_MAX && dt < 600) {
-        if (dy < 0) onNextPage();   // swipe up → next page
-        else        onPrevPage();   // swipe down → prev page
+      if (dy < -SWIPE_Y_MIN && absDx < SWIPE_X_MAX && dt < 600) {
+        onNextPage(); // swipe up → next page only
       }
       stopDrawing();
     }, [stopDrawing, isDrawing, showText, onNextPage, onPrevPage]);
