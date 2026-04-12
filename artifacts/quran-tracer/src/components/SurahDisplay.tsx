@@ -181,18 +181,45 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
       download: () => downloadAsImage(textLayerRef, showText, `quran-page-${currentPage}`),
     }));
 
-    /* ── Swipe gesture detection ─────────────────────────────── */
-    const swipeStart = useRef<{ x: number; y: number; t: number; isStylus: boolean } | null>(null);
+    /* ── Wheel / trackpad scroll → page navigation ──────────── */
+    const wheelAccum   = useRef(0);
+    const wheelTimer   = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const onNextRef    = useRef(onNextPage);
+    const onPrevRef    = useRef(onPrevPage);
+    useEffect(() => { onNextRef.current = onNextPage; onPrevRef.current = onPrevPage; });
+
+    useEffect(() => {
+      const el = containerRef.current;
+      if (!el) return;
+      const handler = (e: WheelEvent) => {
+        e.preventDefault();
+        wheelAccum.current += e.deltaY;
+        if (wheelTimer.current) clearTimeout(wheelTimer.current);
+        wheelTimer.current = setTimeout(() => {
+          if (wheelAccum.current > 40)       onNextRef.current();
+          else if (wheelAccum.current < -40) onPrevRef.current();
+          wheelAccum.current = 0;
+        }, 80);
+      };
+      el.addEventListener("wheel", handler, { passive: false });
+      return () => el.removeEventListener("wheel", handler);
+    }, []); // runs once; always calls latest callbacks via refs
+
+    /* ── Swipe / drag gesture detection ─────────────────────── */
+    const swipeStart = useRef<{ x: number; y: number; t: number } | null>(null);
 
     const onPointerDown = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
       const isStylus = e.pointerType === "pen" || e.pointerType === "stylus";
-      swipeStart.current = { x: e.clientX, y: e.clientY, t: Date.now(), isStylus };
+      swipeStart.current = { x: e.clientX, y: e.clientY, t: Date.now() };
 
-      // Always draw with stylus; draw with finger only when text is hidden
+      // Stylus always draws; touch/mouse draws only when text hidden
       if (isStylus || !showText) {
         if (e.pointerType === "touch" && !e.isPrimary) return;
         e.preventDefault();
         startDrawing(getCanvasPoint(e.clientX, e.clientY, e.pressure > 0 ? e.pressure : 0.5));
+        (e.target as HTMLCanvasElement).setPointerCapture(e.pointerId);
+      } else {
+        // In text-visible mode, capture pointer so we can detect swipe on up
         (e.target as HTMLCanvasElement).setPointerCapture(e.pointerId);
       }
     }, [startDrawing, getCanvasPoint, showText]);
@@ -217,20 +244,19 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
         return;
       }
 
-      // Finger swipe: check gesture
-      if (!start || isDrawing.current) { stopDrawing(); return; }
-
-      const dx  = e.clientX - start.x;
+      // Text-visible mode: detect swipe/drag for page navigation
+      if (!start) return;
       const dy  = e.clientY - start.y;
+      const dx  = e.clientX - start.x;
       const dt  = Date.now() - start.t;
-      const absDy = Math.abs(dy);
-      const absDx = Math.abs(dx);
 
-      if (dy < -SWIPE_Y_MIN && absDx < SWIPE_X_MAX && dt < 600) {
-        onNextPage(); // swipe up → next page only
+      if (dy < -SWIPE_Y_MIN && Math.abs(dx) < SWIPE_X_MAX && dt < 700) {
+        onNextPage(); // swipe / drag up → next page
+      } else if (dy > SWIPE_Y_MIN && Math.abs(dx) < SWIPE_X_MAX && dt < 700) {
+        onPrevPage(); // swipe / drag down → prev page
       }
       stopDrawing();
-    }, [stopDrawing, isDrawing, showText, onNextPage, onPrevPage]);
+    }, [stopDrawing, showText, onNextPage, onPrevPage]);
 
     /* ── Theme ───────────────────────────────────────────────── */
     const bg          = isDark ? "#12122a"                 : "#fefdf8";
