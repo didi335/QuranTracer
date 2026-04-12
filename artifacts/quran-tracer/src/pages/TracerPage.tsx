@@ -174,6 +174,8 @@ export default function TracerPage() {
               showText={showText}
               penSettings={penSettings}
               isDark={isDark}
+              onNextPage={quran.nextPage}
+              onPrevPage={quran.prevPage}
             />
           )}
         </div>
