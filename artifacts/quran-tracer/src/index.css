@@ -216,3 +216,11 @@
 .font-arabic {
   font-family: 'Scheherazade New', 'Amiri', serif;
 }
+
+/* Hide scrollbars on snap-scroll containers */
+*::-webkit-scrollbar { display: none; }
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}

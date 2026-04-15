@@ -6,13 +6,12 @@ import { Verse, Chapter, Word, TOTAL_PAGES } from "@/services/quranApi";
 import { useCanvas, PenSettings } from "@/hooks/useCanvas";
 
 interface SurahDisplayProps {
-  chapters:    Chapter[];
-  /** Verse getter: returns cached verses for any page */
-  getVerses:   (page: number) => Verse[];
-  currentPage: number;
-  showText:    boolean;
-  penSettings: PenSettings;
-  isDark:      boolean;
+  chapters:     Chapter[];
+  getVerses:    (page: number) => Verse[];
+  currentPage:  number;
+  showText:     boolean;
+  penSettings:  PenSettings;
+  isDark:       boolean;
   onPageChange: (page: number) => void;
 }
 
@@ -41,12 +40,24 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
   ) {
     const outerRef  = useRef<HTMLDivElement>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
-    const canvasRef2 = useRef<HTMLDivElement>(null); // dummy for useCanvas compat
+    const dummyRef  = useRef<HTMLDivElement>(null); // for useCanvas compat
 
     const {
       canvasRef, startDrawing, draw, stopDrawing,
       undo, clear, clearHistory, downloadAsImage, getCanvasPoint,
-    } = useCanvas(penSettings, canvasRef2);
+    } = useCanvas(penSettings, dummyRef);
+
+    /* ── Slot height in px (ensures pixel-perfect page separation) ── */
+    const [slotH, setSlotH] = useState(0);
+    useEffect(() => {
+      const el = outerRef.current;
+      if (!el) return;
+      const update = () => setSlotH(el.clientHeight);
+      update();
+      const ro = new ResizeObserver(update);
+      ro.observe(el);
+      return () => ro.disconnect();
+    }, []);
 
     /* ── Font injection ──────────────────────────────────────── */
     useEffect(() => {
@@ -56,7 +67,7 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
       }
     }, [currentPage]);
 
-    /* ── Chapter lookup ──────────────────────────────────────── */
+    /* ── Chapter map ─────────────────────────────────────────── */
     const chapterMap = useMemo(() => {
       const m = new Map<number, Chapter>();
       chapters.forEach(c => m.set(c.id, c));
@@ -95,119 +106,126 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
     useImperativeHandle(ref, () => ({
       undo,
       clear,
-      download: () => downloadAsImage({ current: outerRef.current }, showText, `quran-page-${currentPage}`),
+      download: () => downloadAsImage(
+        { current: outerRef.current } as React.RefObject<HTMLElement>,
+        showText,
+        `quran-page-${currentPage}`,
+      ),
     }));
 
-    /* ── Scroll position init & after page-change reset ─────── */
-    const ignoreScroll = useRef(false);
+    /* ── Scroll management ───────────────────────────────────── */
+    const ignoreNext = useRef(false);
+    const snapTimer  = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    const resetToCenter = useCallback(() => {
+    /** Jump scroll to the center slot without triggering page-change logic */
+    const snapToCenter = useCallback(() => {
       const el = scrollRef.current;
-      if (!el) return;
-      ignoreScroll.current = true;
-      el.scrollTop = el.clientHeight;
-      // Re-enable scroll tracking after a frame
-      requestAnimationFrame(() => {
-        ignoreScroll.current = false;
-      });
-    }, []);
+      if (!el || !slotH) return;
+      ignoreNext.current = true;
+      el.scrollTop = slotH;
+      requestAnimationFrame(() => { ignoreNext.current = false; });
+    }, [slotH]);
 
-    // On mount: scroll to center slot (slot 1 = index 1 = currentPage)
+    // On mount or external page change: reset to center slot
+    const didMount = useRef(false);
     useEffect(() => {
-      resetToCenter();
+      if (!slotH) return;
+      snapToCenter();
+      if (!didMount.current) didMount.current = true;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []); // mount only
+    }, [currentPage, slotH]);
 
-    // When currentPage changes (e.g. surah jump), reset to center
-    useEffect(() => {
-      resetToCenter();
-    }, [currentPage, resetToCenter]);
+    /* ── Canvas visibility ───────────────────────────────────── */
+    const hideCanvas = () => { if (canvasRef.current) canvasRef.current.style.opacity = "0"; };
+    const showCanvas = () => { if (canvasRef.current) canvasRef.current.style.opacity = "1"; };
 
-    /* ── Canvas visibility control ───────────────────────────── */
-    const scrollEndTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-    const hideCanvas = useCallback(() => {
-      const c = canvasRef.current;
-      if (c) c.style.opacity = "0";
-    }, [canvasRef]);
-
-    const showCanvas = useCallback(() => {
-      const c = canvasRef.current;
-      if (c) c.style.opacity = "1";
-    }, [canvasRef]);
-
-    /* ── Scroll handler ──────────────────────────────────────── */
+    /* ── Scroll event → page change ──────────────────────────── */
     const onScroll = useCallback(() => {
-      if (ignoreScroll.current) return;
+      if (ignoreNext.current) return;
       hideCanvas();
-
-      if (scrollEndTimer.current) clearTimeout(scrollEndTimer.current);
-      scrollEndTimer.current = setTimeout(() => {
+      if (snapTimer.current) clearTimeout(snapTimer.current);
+      snapTimer.current = setTimeout(() => {
         const el = scrollRef.current;
-        if (!el) return;
-
-        const slotH = el.clientHeight;
-        const slot  = Math.round(el.scrollTop / slotH); // 0, 1, or 2
-
-        if (slot === 0) {
-          // Scrolled to previous page
-          const newPage = Math.max(1, currentPage - 1);
-          el.scrollTop = slotH; // reset instantly
-          ignoreScroll.current = true;
-          requestAnimationFrame(() => { ignoreScroll.current = false; });
-          if (newPage !== currentPage) onPageChange(newPage);
-          else showCanvas();
-        } else if (slot === 2) {
-          // Scrolled to next page
-          const newPage = Math.min(TOTAL_PAGES, currentPage + 1);
-          el.scrollTop = slotH; // reset instantly
-          ignoreScroll.current = true;
-          requestAnimationFrame(() => { ignoreScroll.current = false; });
-          if (newPage !== currentPage) onPageChange(newPage);
+        if (!el || !slotH) return;
+        const slot = Math.round(el.scrollTop / slotH); // 0 | 1 | 2
+        if (slot === 0 || slot === 2) {
+          const delta = slot === 0 ? -1 : 1;
+          const next  = Math.max(1, Math.min(TOTAL_PAGES, currentPage + delta));
+          // reset scroll first so snap doesn't fight us
+          ignoreNext.current = true;
+          el.scrollTop = slotH;
+          requestAnimationFrame(() => { ignoreNext.current = false; });
+          if (next !== currentPage) onPageChange(next);
           else showCanvas();
         } else {
-          // Stayed on current page
           showCanvas();
         }
-      }, 120);
-    }, [currentPage, onPageChange, hideCanvas, showCanvas]);
+      }, 100);
+    }, [currentPage, onPageChange, slotH]);
 
-    /* ── Drawing pointer events ──────────────────────────────── */
-    const onPointerDown = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
+    /* ── Keyboard navigation ─────────────────────────────────── */
+    const onPageChangeRef = useRef(onPageChange);
+    const currentPageRef  = useRef(currentPage);
+    useEffect(() => { onPageChangeRef.current = onPageChange; currentPageRef.current = currentPage; });
+
+    useEffect(() => {
+      const handler = (e: KeyboardEvent) => {
+        // Don't fire if typing in an input
+        if ((e.target as HTMLElement).tagName === "INPUT" ||
+            (e.target as HTMLElement).tagName === "TEXTAREA") return;
+        if (e.key === "ArrowDown" || e.key === "ArrowRight" || e.key === " ") {
+          e.preventDefault();
+          onPageChangeRef.current(Math.min(TOTAL_PAGES, currentPageRef.current + 1));
+        } else if (e.key === "ArrowUp" || e.key === "ArrowLeft") {
+          e.preventDefault();
+          onPageChangeRef.current(Math.max(1, currentPageRef.current - 1));
+        }
+      };
+      window.addEventListener("keydown", handler);
+      return () => window.removeEventListener("keydown", handler);
+    }, []);
+
+    /* ── Drawing via the SCROLL CONTAINER ────────────────────── */
+    // Canvas is pointer-events:none (purely visual).
+    // We listen on the scroll container so wheel/touch scroll still works natively.
+
+    const onPtrDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
       const isPen   = e.pointerType === "pen";
       const isTouch = e.pointerType === "touch";
-
-      if (isPen || (!showText && isTouch)) {
+      if (isPen || (isTouch && !showText)) {
+        if (isTouch && !e.isPrimary) return;
         e.preventDefault();
         startDrawing(getCanvasPoint(e.clientX, e.clientY, e.pressure > 0 ? e.pressure : 0.5));
-        (e.target as HTMLCanvasElement).setPointerCapture(e.pointerId);
+        (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
       }
     }, [startDrawing, getCanvasPoint, showText]);
 
-    const onPointerMove = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
+    const onPtrMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
       const isPen   = e.pointerType === "pen";
       const isTouch = e.pointerType === "touch";
-      if (isPen || (!showText && isTouch)) {
+      if (isPen || (isTouch && !showText)) {
+        if (isTouch && !e.isPrimary) return;
         e.preventDefault();
         draw(getCanvasPoint(e.clientX, e.clientY, e.pressure > 0 ? e.pressure : 0.5));
       }
     }, [draw, getCanvasPoint, showText]);
 
-    const onPointerUp = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
-      e.preventDefault();
-      stopDrawing();
-    }, [stopDrawing]);
+    const onPtrUp = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+      const isPen   = e.pointerType === "pen";
+      const isTouch = e.pointerType === "touch";
+      if (isPen || (isTouch && !showText)) stopDrawing();
+    }, [stopDrawing, showText]);
 
     /* ── Theme ───────────────────────────────────────────────── */
-    const bg          = isDark ? "#12122a"                 : "#fefdf8";
-    const borderColor = isDark ? "#2a2a4e"                 : "#d8d3c0";
+    const bg      = isDark ? "#12122a" : "#fefdf8";
+    const divider = isDark ? "#1e1e38" : "#e8e3d5";
 
     return (
       <div
         ref={outerRef}
         style={{ position: "relative", width: "100%", height: "100%", background: bg, overflow: "hidden" }}
       >
-        {/* ── 3-slot scroll-snap container ─────────────────── */}
+        {/* ── 3-slot native-scroll container ───────────────── */}
         <div
           ref={scrollRef}
           style={{
@@ -215,79 +233,95 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
             overflowY: "scroll",
             overflowX: "hidden",
             scrollSnapType: "y mandatory",
-            WebkitOverflowScrolling: "touch" as React.CSSProperties["WebkitOverflowScrolling"],
-            // Hide scrollbar
+            WebkitOverflowScrolling: "touch",
             scrollbarWidth: "none",
-            msOverflowStyle: "none" as React.CSSProperties["msOverflowStyle"],
+            // Receives ALL pointer events (canvas is pointer-events:none above)
+            touchAction: showText ? "pan-y" : "none",
           } as React.CSSProperties}
           onScroll={onScroll}
+          onPointerDown={onPtrDown}
+          onPointerMove={onPtrMove}
+          onPointerUp={onPtrUp}
+          onPointerLeave={onPtrUp}
+          onPointerCancel={onPtrUp}
         >
-          {/* Slots: prev, current, next */}
-          {[-1, 0, 1].map((offset) => {
+          {slotH > 0 && [-1, 0, 1].map((offset) => {
             const page = currentPage + offset;
-            const verses = (page >= 1 && page <= TOTAL_PAGES) ? getVerses(page) : [];
             return (
-              <PageSlot
+              <div
                 key={offset}
-                page={page}
-                verses={verses}
-                chapters={chapters}
-                chapterMap={chapterMap}
-                isDark={isDark}
-                showText={showText}
-                borderColor={borderColor}
-              />
+                style={{
+                  height:          slotH,
+                  flexShrink:      0,
+                  scrollSnapAlign: "start",
+                  overflow:        "hidden",
+                  // Subtle divider between pages
+                  borderBottom: offset < 1 ? `3px solid ${divider}` : undefined,
+                }}
+              >
+                {page >= 1 && page <= TOTAL_PAGES ? (
+                  <PageContent
+                    page={page}
+                    verses={getVerses(page)}
+                    chapterMap={chapterMap}
+                    isDark={isDark}
+                    showText={showText}
+                    containerH={slotH}
+                  />
+                ) : (
+                  /* Out-of-bounds page (before 1 or after 604) */
+                  <div style={{ height: "100%", background: bg }} />
+                )}
+              </div>
             );
           })}
         </div>
 
-        {/* ── Drawing canvas — fixed to outer container ─────── */}
+        {/* ── Canvas — pointer-events:none so scroll passes through ─ */}
         <canvas
           ref={canvasRef}
           style={{
-            position: "absolute",
-            top: 0, left: 0,
-            zIndex: 10,
-            // Allow finger to scroll through canvas; pen always draws
-            touchAction: "pan-y",
-            cursor: showText ? "default" : "crosshair",
-            willChange: "opacity",
-            transition: "opacity 0.15s ease",
+            position:      "absolute",
+            top:           0,
+            left:          0,
+            zIndex:        10,
+            pointerEvents: "none",
+            willChange:    "opacity",
+            transition:    "opacity 0.12s ease",
           }}
-          onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
-          onPointerLeave={onPointerUp}
-          onPointerCancel={onPointerUp}
         />
+
+        {/* Hidden ref for useCanvas compat */}
+        <div ref={dummyRef} style={{ display: "none" }} />
       </div>
     );
   }
 );
 
-/* ── One page slot ───────────────────────────────────────────── */
-interface SlotProps {
+/* ════════════════════════════════════════════════════════════
+   Page content (one Mushaf page, dynamically sized to fit)
+   ════════════════════════════════════════════════════════════ */
+interface PageContentProps {
   page:       number;
   verses:     Verse[];
-  chapters:   Chapter[];
   chapterMap: Map<number, Chapter>;
   isDark:     boolean;
   showText:   boolean;
-  borderColor: string;
+  containerH: number;
 }
 
-function PageSlot({ page, verses, chapterMap, isDark, showText }: SlotProps) {
-  const [fontSize, setFontSize] = useState(36);
-  const slotRef  = useRef<HTMLDivElement>(null);
+function PageContent({ page, verses, chapterMap, isDark, showText, containerH }: PageContentProps) {
+  const pageRef  = useRef<HTMLDivElement>(null);
+  const [fontSize, setFontSize] = useState(34);
 
-  const textColor   = isDark ? "rgba(220,210,185,0.95)" : "#111827";
-  const accentColor = isDark ? "#d4af37"                : "#1a3a6e";
-  const bannerBg    = isDark ? "rgba(212,175,55,0.06)"  : "rgba(255,255,255,0.95)";
-  const bannerBorder= isDark ? "#4a3a10"                : "#1a3a6e";
-  const pageNumColor= isDark ? "#4a4a6a"                : "#b0a898";
-  const fontFamily  = `"QPC_P${page}", "Amiri Quran", serif`;
+  const textColor    = isDark ? "rgba(220,210,185,0.95)" : "#111827";
+  const accentColor  = isDark ? "#d4af37"                : "#1a3a6e";
+  const bannerBg     = isDark ? "rgba(212,175,55,0.05)"  : "rgba(255,255,255,0.97)";
+  const bannerBorder = isDark ? "#4a3a10"                : "#1a3a6e";
+  const pageNumColor = isDark ? "#4a4a6a"                : "#c0b8a8";
+  const fontFamily   = `"QPC_P${page}", "Amiri Quran", serif`;
 
-  /* ── Build ordered lines ─────────────────────────────────── */
+  /* ── Lines with surah-break markers ───────────────────── */
   type PageLine = { lineNumber: number; words: Word[]; newChapter?: Chapter };
 
   const pageLines = useMemo<PageLine[]>(() => {
@@ -316,66 +350,76 @@ function PageSlot({ page, verses, chapterMap, isDark, showText }: SlotProps) {
     return result;
   }, [verses, chapterMap]);
 
-  /* ── Dynamic font size ───────────────────────────────────── */
+  /* ── Font size: fit all lines into available height ───── */
   const computeFontSize = useCallback(() => {
-    const el = slotRef.current;
+    const el = pageRef.current;
     if (!el || !pageLines.length) return;
-    const h = el.clientHeight;
+    const h = containerH; // use the exact pixel height
     const w = el.clientWidth;
-    const banners     = pageLines.filter(pl => pl.newChapter);
+
+    const banners      = pageLines.filter(pl => pl.newChapter);
     const hasBismillah = banners.some(pl => pl.newChapter!.bismillah_pre && pl.newChapter!.id !== 9);
-    const bannerRows  = banners.length * 3.8 + (hasBismillah ? 1.4 : 0);
-    const totalRows   = pageLines.length + bannerRows + 1.5;
-    const padV        = h * 0.07;
-    const avail       = h - padV * 2;
-    let fs = avail / (totalRows * 1.88);
-    const maxByWidth  = (w * 0.88) / 18;
-    fs = Math.min(fs, maxByWidth, 54);
-    fs = Math.max(fs, 16);
+    // Each banner ≈ 4 line-slots (border + title + subtitle + gap), bismillah ≈ 1.6 extra
+    const bannerRows   = banners.length * 4.0 + (hasBismillah ? 1.6 : 0);
+    const totalRows    = pageLines.length + bannerRows + 2; // +2 for footer + top margin
+
+    const padV  = h * 0.07;
+    const avail = h - padV * 2;
+    let   fs    = avail / (totalRows * 1.85);
+
+    const maxByWidth = (w * 0.86) / 18;
+    fs = Math.min(fs, maxByWidth, 52);
+    fs = Math.max(fs, 14);
     setFontSize(Math.round(fs));
-  }, [pageLines]);
+  }, [pageLines, containerH]);
 
   useEffect(() => { computeFontSize(); }, [computeFontSize]);
 
   useEffect(() => {
-    const el = slotRef.current;
+    const el = pageRef.current;
     if (!el) return;
     const ro = new ResizeObserver(computeFontSize);
     ro.observe(el);
     return () => ro.disconnect();
   }, [computeFontSize]);
 
+  const padH = "5%";
+
   return (
     <div
-      ref={slotRef}
+      ref={pageRef}
       style={{
-        height: "100%",
-        width: "100%",
-        flexShrink: 0,
-        scrollSnapAlign: "start",
-        display: "flex",
+        width:         "100%",
+        height:        "100%",
+        display:       "flex",
         flexDirection: "column",
-        justifyContent: "center",
-        paddingTop: "6%",
-        paddingBottom: "6%",
-        paddingLeft: "5%",
-        paddingRight: "5%",
-        opacity: showText ? 1 : 0,
-        transition: "opacity 0.2s ease",
-        userSelect: "none",
+        alignItems:    "center",
+        paddingTop:    "5.5%",
+        paddingBottom: "4%",
+        paddingLeft:   padH,
+        paddingRight:  padH,
+        opacity:       showText ? 1 : 0,
+        transition:    "opacity 0.2s ease",
+        userSelect:    "none",
         pointerEvents: "none",
-        boxSizing: "border-box",
+        boxSizing:     "border-box",
+        overflow:      "hidden",
       }}
     >
       {!verses.length ? (
-        /* Loading placeholder */
-        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100%" }}>
-          <svg style={{ width: 28, height: 28, opacity: 0.3, animation: "spin 1s linear infinite" }} viewBox="0 0 24 24" fill="none">
-            <circle cx="12" cy="12" r="10" stroke={accentColor} strokeWidth="4" strokeDasharray="30 70" />
-          </svg>
+        /* Loading state */
+        <div style={{ display: "flex", flex: 1, justifyContent: "center", alignItems: "center" }}>
+          <div style={{
+            width: 24, height: 24, borderRadius: "50%",
+            border: `2px solid ${accentColor}`,
+            borderTopColor: "transparent",
+            animation: "spin 0.9s linear infinite",
+            opacity: 0.35,
+          }} />
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 0, flex: 1 }}>
+        /* Lines */
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", width: "100%", justifyContent: "center" }}>
           {pageLines.map((pl, i) => (
             <div key={pl.lineNumber}>
               {pl.newChapter && (
@@ -394,13 +438,13 @@ function PageSlot({ page, verses, chapterMap, isDark, showText }: SlotProps) {
                 style={{
                   fontFamily,
                   fontSize,
-                  lineHeight: 1,
-                  color: textColor,
-                  textAlign: "center",
-                  paddingTop: "0.52em",
-                  paddingBottom: "0.32em",
-                  direction: "rtl",
-                  unicodeBidi: "bidi-override",
+                  lineHeight:   1,
+                  color:        textColor,
+                  textAlign:    "center",
+                  paddingTop:   "0.50em",
+                  paddingBottom:"0.32em",
+                  direction:    "rtl",
+                  unicodeBidi:  "bidi-override",
                 }}
               >
                 {pl.words.map((w, wi) => (
@@ -422,13 +466,14 @@ function PageSlot({ page, verses, chapterMap, isDark, showText }: SlotProps) {
 
       {/* Page number */}
       <div style={{
-        textAlign: "center",
-        fontFamily: "'Amiri', serif",
-        fontSize: Math.max(10, fontSize * 0.30),
-        color: pageNumColor,
+        flexShrink:  0,
+        textAlign:   "center",
+        fontFamily:  "'Amiri', serif",
+        fontSize:    Math.max(10, fontSize * 0.29),
+        color:       pageNumColor,
         letterSpacing: "0.05em",
-        marginTop: "0.6em",
-        flexShrink: 0,
+        paddingTop:  "0.8em",
+        opacity:     showText ? 1 : 0,
       }}>
         ━ {page} ━
       </div>
@@ -436,55 +481,96 @@ function PageSlot({ page, verses, chapterMap, isDark, showText }: SlotProps) {
   );
 }
 
-/* ── Surah banner ────────────────────────────────────────────── */
+/* ════════════════════════════════════════════════════════════
+   Surah banner — properly spaced header
+   ════════════════════════════════════════════════════════════ */
 function SurahBanner({
   chapter, isDark, bannerBg, bannerBorder, accentColor, isFirst, fontSize,
 }: {
   chapter: Chapter; isDark: boolean; bannerBg: string;
   bannerBorder: string; accentColor: string; isFirst: boolean; fontSize: number;
 }) {
-  const subtitleColor = isDark ? "#8888aa" : "#6b7280";
-  const shadowColor   = isDark ? "rgba(0,0,0,0.5)" : "rgba(26,58,110,0.10)";
+  const subtitleColor = isDark ? "#9090b0" : "#6b7280";
+  const shadowColor   = isDark ? "rgba(0,0,0,0.45)" : "rgba(26,58,110,0.08)";
 
   return (
-    <div style={{ marginBottom: fontSize * 0.28, marginTop: isFirst ? 0 : fontSize * 0.7 }}>
+    <div style={{
+      width:        "100%",
+      marginTop:    isFirst ? 0 : fontSize * 0.9,
+      marginBottom: fontSize * 0.5,
+    }}>
+      {/* ── Decorative top rule ─────────────────── */}
       <div style={{
-        position: "relative",
+        height:     1,
+        background: `linear-gradient(to right, transparent, ${bannerBorder}80, transparent)`,
+        marginBottom: fontSize * 0.38,
+      }} />
+
+      {/* ── Banner box ──────────────────────────── */}
+      <div style={{
+        position:   "relative",
         background: bannerBg,
-        border: `2px solid ${bannerBorder}`,
-        borderRadius: 6,
-        padding: `${fontSize * 0.16}px ${fontSize * 1.3}px`,
-        textAlign: "center",
-        boxShadow: `0 2px 12px ${shadowColor}`,
-        overflow: "hidden",
+        border:     `1.5px solid ${bannerBorder}55`,
+        borderRadius: 8,
+        paddingTop:    fontSize * 0.38,
+        paddingBottom: fontSize * 0.30,
+        paddingLeft:   fontSize * 1.4,
+        paddingRight:  fontSize * 1.4,
+        textAlign:  "center",
+        boxShadow:  `0 1px 10px ${shadowColor}`,
+        overflow:   "hidden",
       }}>
+        {/* Corner ornaments */}
         <span style={{ position: "absolute", left: 6, top: "50%", transform: "translateY(-50%)" }}>
-          <OrnamentLeft color={bannerBorder} size={fontSize * 1.1} />
+          <OrnamentLeft color={bannerBorder} size={fontSize} />
         </span>
         <span style={{ position: "absolute", right: 6, top: "50%", transform: "translateY(-50%) scaleX(-1)" }}>
-          <OrnamentLeft color={bannerBorder} size={fontSize * 1.1} />
+          <OrnamentLeft color={bannerBorder} size={fontSize} />
         </span>
-        <div style={{ position: "absolute", top: 5, left: "18%", right: "18%", height: 1, background: bannerBorder, opacity: 0.3 }} />
-        <div style={{ position: "absolute", bottom: 5, left: "18%", right: "18%", height: 1, background: bannerBorder, opacity: 0.3 }} />
 
+        {/* Surah name */}
         <div dir="rtl" style={{
           fontFamily: '"Amiri Quran", "Amiri", serif',
-          fontSize: fontSize * 0.76,
-          color: accentColor, lineHeight: 1.7, fontWeight: "bold",
+          fontSize:   fontSize * 0.80,
+          color:      accentColor,
+          fontWeight: "bold",
+          lineHeight: 1.5,
+          letterSpacing: 0,
         }}>
           سُورَةُ {chapter.name_arabic}
         </div>
-        <div style={{ fontSize: fontSize * 0.26, color: subtitleColor, marginTop: 2, letterSpacing: "0.07em", fontWeight: 500 }}>
-          {chapter.name_simple.toUpperCase()} · {chapter.revelation_place === "makkah" ? "MAKKI" : "MADANI"} · {chapter.verses_count} AYAHS
+
+        {/* Subtitle */}
+        <div style={{
+          fontSize:      fontSize * 0.24,
+          color:         subtitleColor,
+          marginTop:     fontSize * 0.08,
+          letterSpacing: "0.08em",
+          fontWeight:    600,
+          textTransform: "uppercase",
+        }}>
+          {chapter.name_simple} · {chapter.revelation_place === "makkah" ? "Makki" : "Madani"} · {chapter.verses_count} Ayahs
         </div>
       </div>
 
+      {/* ── Decorative bottom rule ───────────────── */}
+      <div style={{
+        height:    1,
+        background: `linear-gradient(to right, transparent, ${bannerBorder}80, transparent)`,
+        marginTop: fontSize * 0.38,
+      }} />
+
+      {/* ── Bismillah ───────────────────────────── */}
       {chapter.bismillah_pre && chapter.id !== 9 && (
         <div dir="rtl" style={{
-          fontFamily: '"Amiri Quran", "Amiri", serif',
-          fontSize: fontSize * 0.70,
-          color: accentColor, textAlign: "center",
-          lineHeight: 1.9, marginTop: fontSize * 0.28, opacity: 0.92,
+          fontFamily:  '"Amiri Quran", "Amiri", serif',
+          fontSize:    fontSize * 0.72,
+          color:       accentColor,
+          textAlign:   "center",
+          lineHeight:  1.9,
+          marginTop:   fontSize * 0.22,
+          marginBottom: fontSize * 0.10,
+          opacity:     0.90,
         }}>
           بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ
         </div>
@@ -497,16 +583,16 @@ function OrnamentLeft({ color, size = 44 }: { color: string; size?: number }) {
   const s = size;
   return (
     <svg width={s} height={s * 0.82} viewBox="0 0 44 36" fill="none">
-      <circle cx="18" cy="18" r="15" stroke={color} strokeWidth="1.5" fill="none" opacity="0.7" />
-      <circle cx="18" cy="18" r="9"  stroke={color} strokeWidth="1"   fill="none" opacity="0.6" />
-      <circle cx="18" cy="18" r="2.5" fill={color} opacity="0.8" />
-      <path d="M18 3 Q21 10 18 12 Q15 10 18 3Z"   fill={color} opacity="0.5" />
-      <path d="M18 33 Q21 26 18 24 Q15 26 18 33Z" fill={color} opacity="0.5" />
-      <path d="M36 18 Q31 14 28 18 Q31 22 36 18Z" fill={color} opacity="0.5" />
-      <path d="M38 6 Q36 12 34 14"  stroke={color} strokeWidth="1.5" strokeLinecap="round" opacity="0.6" />
-      <path d="M38 30 Q36 24 34 22" stroke={color} strokeWidth="1.5" strokeLinecap="round" opacity="0.6" />
-      <circle cx="40" cy="5"  r="2" fill={color} opacity="0.6" />
-      <circle cx="40" cy="31" r="2" fill={color} opacity="0.6" />
+      <circle cx="18" cy="18" r="15" stroke={color} strokeWidth="1.5" fill="none" opacity="0.6" />
+      <circle cx="18" cy="18" r="9"  stroke={color} strokeWidth="1"   fill="none" opacity="0.5" />
+      <circle cx="18" cy="18" r="2.5" fill={color} opacity="0.7" />
+      <path d="M18 3 Q21 10 18 12 Q15 10 18 3Z"   fill={color} opacity="0.45" />
+      <path d="M18 33 Q21 26 18 24 Q15 26 18 33Z" fill={color} opacity="0.45" />
+      <path d="M36 18 Q31 14 28 18 Q31 22 36 18Z" fill={color} opacity="0.45" />
+      <path d="M38 6 Q36 12 34 14"  stroke={color} strokeWidth="1.5" strokeLinecap="round" opacity="0.55" />
+      <path d="M38 30 Q36 24 34 22" stroke={color} strokeWidth="1.5" strokeLinecap="round" opacity="0.55" />
+      <circle cx="40" cy="5"  r="2" fill={color} opacity="0.55" />
+      <circle cx="40" cy="31" r="2" fill={color} opacity="0.55" />
     </svg>
   );
 }

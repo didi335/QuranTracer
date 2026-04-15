@@ -1,0 +1,89 @@
+Fix layout, page separation, header alignment, and scrolling issues in the Quran tracing app.
+
+1. Page Separation (CRITICAL):
+- Pages are currently merging together incorrectly.
+- Each page must be clearly separated and independent.
+
+Fix:
+- Treat each page as its own container (div).
+- Add clear vertical spacing between pages.
+- If a Surah ends mid-page:
+   - DO NOT force the next Surah onto the same page.
+   - End the page early and start the next Surah on a new page.
+
+- Each page should visually look like:
+   - One clean Quran page
+   - Not a continuous merged block
+
+2. Surah Header Alignment:
+- The Surah name is currently overlapping or sitting on a line.
+
+Fix:
+- Place the Surah name in a properly spaced header section.
+- Add:
+   - Padding above and below the Surah title
+   - Ensure it is centered between divider lines (not touching them)
+- The layout should look balanced:
+   - Line
+   - Space
+   - Surah Name
+   - Space
+   - Line
+
+- Remove any cramped or overlapping styling.
+
+3. Scrolling (VERY IMPORTANT – MULTI-INPUT SUPPORT):
+Scrolling must work on ALL devices and inputs:
+
+Fix scrolling for:
+- Trackpad (Mac)
+- Mouse wheel
+- Keyboard (arrow keys + spacebar)
+- Touch (iPad / touchscreen)
+
+Technical fixes:
+- Ensure main container uses:
+   - overflow-y: auto;
+   - height: 100vh;
+
+- Add keyboard support:
+   - Arrow Down → scroll down
+   - Arrow Up → scroll up
+   - Spacebar → scroll down
+
+- Ensure no element (like canvas) blocks scroll events.
+
+4. Fix Scroll Blocking:
+- The drawing layer must NOT block scrolling when not drawing.
+- Allow:
+   - Scroll with mouse/trackpad normally
+   - Draw only when actively using pen/touch
+
+5. Page Layout Spacing:
+- Add consistent spacing:
+   - Between pages
+   - Around Quran text
+   - Around headers
+
+- Prevent content from touching edges.
+
+6. Visual Cleanliness:
+- Ensure each page:
+   - Has margins
+   - Is centered
+   - Looks like a real Mushaf page
+
+7. Performance:
+- Keep scrolling smooth.
+- Do not re-render everything on scroll.
+
+Important:
+- Do NOT merge pages together.
+- Do NOT overlap Surah titles with lines.
+- Ensure scrolling works across all devices and inputs.
+
+Output:
+- Fix page structure (no merging).
+- Fix Surah header spacing.
+- Enable full scrolling support (mouse, keyboard, touch).
+- Provide updated working code.
