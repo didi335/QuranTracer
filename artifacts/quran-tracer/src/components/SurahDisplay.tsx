@@ -359,16 +359,16 @@ function PageContent({ page, verses, chapterMap, isDark, showText, containerH }:
 
     const banners      = pageLines.filter(pl => pl.newChapter);
     const hasBismillah = banners.some(pl => pl.newChapter!.bismillah_pre && pl.newChapter!.id !== 9);
-    // Each banner ≈ 4 line-slots (border + title + subtitle + gap), bismillah ≈ 1.6 extra
-    const bannerRows   = banners.length * 4.0 + (hasBismillah ? 1.6 : 0);
-    const totalRows    = pageLines.length + bannerRows + 2; // +2 for footer + top margin
+    // Compact banner ≈ 2.4 line-slots; bismillah ≈ 1.3 extra
+    const bannerRows   = banners.length * 2.4 + (hasBismillah ? 1.3 : 0);
+    const totalRows    = pageLines.length + bannerRows + 1.5; // +1.5 for footer + top margin
 
-    const padV  = h * 0.07;
+    const padV  = h * 0.055;
     const avail = h - padV * 2;
-    let   fs    = avail / (totalRows * 1.85);
+    let   fs    = avail / (totalRows * 1.78);
 
-    const maxByWidth = (w * 0.86) / 18;
-    fs = Math.min(fs, maxByWidth, 52);
+    const maxByWidth = (w * 0.90) / 18;
+    fs = Math.min(fs, maxByWidth, 56);
     fs = Math.max(fs, 14);
     setFontSize(Math.round(fs));
   }, [pageLines, containerH]);
@@ -482,7 +482,7 @@ function PageContent({ page, verses, chapterMap, isDark, showText, containerH }:
 }
 
 /* ════════════════════════════════════════════════════════════
-   Surah banner — properly spaced header
+   Surah banner — compact, no ornaments, max-width centered
    ════════════════════════════════════════════════════════════ */
 function SurahBanner({
   chapter, isDark, bannerBg, bannerBorder, accentColor, isFirst, fontSize,
@@ -491,61 +491,51 @@ function SurahBanner({
   bannerBorder: string; accentColor: string; isFirst: boolean; fontSize: number;
 }) {
   const subtitleColor = isDark ? "#9090b0" : "#6b7280";
-  const shadowColor   = isDark ? "rgba(0,0,0,0.45)" : "rgba(26,58,110,0.08)";
+  const shadowColor   = isDark ? "rgba(0,0,0,0.35)" : "rgba(26,58,110,0.07)";
 
   return (
     <div style={{
       width:        "100%",
-      marginTop:    isFirst ? 0 : fontSize * 0.9,
-      marginBottom: fontSize * 0.5,
+      maxWidth:     720,
+      margin:       `${isFirst ? 0 : fontSize * 0.55}px auto ${fontSize * 0.30}px`,
     }}>
-      {/* ── Decorative top rule ─────────────────── */}
+      {/* ── Top rule ─── */}
       <div style={{
-        height:     1,
-        background: `linear-gradient(to right, transparent, ${bannerBorder}80, transparent)`,
-        marginBottom: fontSize * 0.38,
+        height:       1,
+        background:   `linear-gradient(to right, transparent, ${bannerBorder}70, transparent)`,
+        marginBottom: fontSize * 0.15,
       }} />
 
-      {/* ── Banner box ──────────────────────────── */}
+      {/* ── Banner box ── */}
       <div style={{
-        position:   "relative",
-        background: bannerBg,
-        border:     `1.5px solid ${bannerBorder}55`,
-        borderRadius: 8,
-        paddingTop:    fontSize * 0.38,
-        paddingBottom: fontSize * 0.30,
-        paddingLeft:   fontSize * 1.4,
-        paddingRight:  fontSize * 1.4,
-        textAlign:  "center",
-        boxShadow:  `0 1px 10px ${shadowColor}`,
-        overflow:   "hidden",
+        background:    bannerBg,
+        border:        `1px solid ${bannerBorder}40`,
+        borderRadius:  6,
+        paddingTop:    fontSize * 0.18,
+        paddingBottom: fontSize * 0.14,
+        paddingLeft:   fontSize * 0.6,
+        paddingRight:  fontSize * 0.6,
+        textAlign:     "center",
+        boxShadow:     `0 1px 6px ${shadowColor}`,
       }}>
-        {/* Corner ornaments */}
-        <span style={{ position: "absolute", left: 6, top: "50%", transform: "translateY(-50%)" }}>
-          <OrnamentLeft color={bannerBorder} size={fontSize} />
-        </span>
-        <span style={{ position: "absolute", right: 6, top: "50%", transform: "translateY(-50%) scaleX(-1)" }}>
-          <OrnamentLeft color={bannerBorder} size={fontSize} />
-        </span>
-
-        {/* Surah name */}
+        {/* Arabic surah name — larger and prominent */}
         <div dir="rtl" style={{
-          fontFamily: '"Amiri Quran", "Amiri", serif',
-          fontSize:   fontSize * 0.80,
-          color:      accentColor,
-          fontWeight: "bold",
-          lineHeight: 1.5,
+          fontFamily:    '"Amiri Quran", "Amiri", serif',
+          fontSize:      fontSize * 1.05,
+          color:         accentColor,
+          fontWeight:    "bold",
+          lineHeight:    1.35,
           letterSpacing: 0,
         }}>
           سُورَةُ {chapter.name_arabic}
         </div>
 
-        {/* Subtitle */}
+        {/* Subtitle — small, tight below title */}
         <div style={{
-          fontSize:      fontSize * 0.24,
+          fontSize:      Math.max(10, fontSize * 0.22),
           color:         subtitleColor,
-          marginTop:     fontSize * 0.08,
-          letterSpacing: "0.08em",
+          marginTop:     fontSize * 0.06,
+          letterSpacing: "0.07em",
           fontWeight:    600,
           textTransform: "uppercase",
         }}>
@@ -553,46 +543,28 @@ function SurahBanner({
         </div>
       </div>
 
-      {/* ── Decorative bottom rule ───────────────── */}
+      {/* ── Bottom rule ── */}
       <div style={{
         height:    1,
-        background: `linear-gradient(to right, transparent, ${bannerBorder}80, transparent)`,
-        marginTop: fontSize * 0.38,
+        background: `linear-gradient(to right, transparent, ${bannerBorder}70, transparent)`,
+        marginTop: fontSize * 0.15,
       }} />
 
-      {/* ── Bismillah ───────────────────────────── */}
+      {/* ── Bismillah (only if needed) ── */}
       {chapter.bismillah_pre && chapter.id !== 9 && (
         <div dir="rtl" style={{
-          fontFamily:  '"Amiri Quran", "Amiri", serif',
-          fontSize:    fontSize * 0.72,
-          color:       accentColor,
-          textAlign:   "center",
-          lineHeight:  1.9,
-          marginTop:   fontSize * 0.22,
-          marginBottom: fontSize * 0.10,
-          opacity:     0.90,
+          fontFamily:   '"Amiri Quran", "Amiri", serif',
+          fontSize:     fontSize * 0.88,
+          color:        accentColor,
+          textAlign:    "center",
+          lineHeight:   1.7,
+          marginTop:    fontSize * 0.12,
+          marginBottom: fontSize * 0.06,
+          opacity:      0.88,
         }}>
           بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ
         </div>
       )}
     </div>
-  );
-}
-
-function OrnamentLeft({ color, size = 44 }: { color: string; size?: number }) {
-  const s = size;
-  return (
-    <svg width={s} height={s * 0.82} viewBox="0 0 44 36" fill="none">
-      <circle cx="18" cy="18" r="15" stroke={color} strokeWidth="1.5" fill="none" opacity="0.6" />
-      <circle cx="18" cy="18" r="9"  stroke={color} strokeWidth="1"   fill="none" opacity="0.5" />
-      <circle cx="18" cy="18" r="2.5" fill={color} opacity="0.7" />
-      <path d="M18 3 Q21 10 18 12 Q15 10 18 3Z"   fill={color} opacity="0.45" />
-      <path d="M18 33 Q21 26 18 24 Q15 26 18 33Z" fill={color} opacity="0.45" />
-      <path d="M36 18 Q31 14 28 18 Q31 22 36 18Z" fill={color} opacity="0.45" />
-      <path d="M38 6 Q36 12 34 14"  stroke={color} strokeWidth="1.5" strokeLinecap="round" opacity="0.55" />
-      <path d="M38 30 Q36 24 34 22" stroke={color} strokeWidth="1.5" strokeLinecap="round" opacity="0.55" />
-      <circle cx="40" cy="5"  r="2" fill={color} opacity="0.55" />
-      <circle cx="40" cy="31" r="2" fill={color} opacity="0.55" />
-    </svg>
   );
 }
