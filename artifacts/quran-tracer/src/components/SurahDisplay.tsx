@@ -361,14 +361,14 @@ function PageContent({ page, verses, chapterMap, isDark, showText, containerH }:
     const hasBismillah = banners.some(pl => pl.newChapter!.bismillah_pre && pl.newChapter!.id !== 9);
     // Compact banner ≈ 2.4 line-slots; bismillah ≈ 1.3 extra
     const bannerRows   = banners.length * 2.4 + (hasBismillah ? 1.3 : 0);
-    const totalRows    = pageLines.length + bannerRows + 1.5; // +1.5 for footer + top margin
+    const totalRows    = pageLines.length + bannerRows + 1.2; // +1.2 for footer
 
-    const padV  = h * 0.055;
+    const padV  = h * 0.045;
     const avail = h - padV * 2;
-    let   fs    = avail / (totalRows * 1.78);
+    let   fs    = avail / (totalRows * 1.70); // matches lineHeight below
 
-    const maxByWidth = (w * 0.90) / 18;
-    fs = Math.min(fs, maxByWidth, 56);
+    const maxByWidth = (w * 0.94) / 15; // more generous per-line width
+    fs = Math.min(fs, maxByWidth, 64);
     fs = Math.max(fs, 14);
     setFontSize(Math.round(fs));
   }, [pageLines, containerH]);
@@ -383,8 +383,6 @@ function PageContent({ page, verses, chapterMap, isDark, showText, containerH }:
     return () => ro.disconnect();
   }, [computeFontSize]);
 
-  const padH = "5%";
-
   return (
     <div
       ref={pageRef}
@@ -394,10 +392,10 @@ function PageContent({ page, verses, chapterMap, isDark, showText, containerH }:
         display:       "flex",
         flexDirection: "column",
         alignItems:    "center",
-        paddingTop:    "5.5%",
-        paddingBottom: "4%",
-        paddingLeft:   padH,
-        paddingRight:  padH,
+        paddingTop:    "3.5%",
+        paddingBottom: "3%",
+        paddingLeft:   "3%",
+        paddingRight:  "3%",
         opacity:       showText ? 1 : 0,
         transition:    "opacity 0.2s ease",
         userSelect:    "none",
@@ -419,7 +417,11 @@ function PageContent({ page, verses, chapterMap, isDark, showText, containerH }:
         </div>
       ) : (
         /* Lines */
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", width: "100%", justifyContent: "center" }}>
+        <div style={{
+          flex: 1, display: "flex", flexDirection: "column",
+          width: "100%", maxWidth: 960, margin: "0 auto",
+          justifyContent: "center",
+        }}>
           {pageLines.map((pl, i) => (
             <div key={pl.lineNumber}>
               {pl.newChapter && (
@@ -434,15 +436,12 @@ function PageContent({ page, verses, chapterMap, isDark, showText, containerH }:
                 />
               )}
               <div
-                dir="rtl"
                 style={{
                   fontFamily,
                   fontSize,
-                  lineHeight:   1,
+                  lineHeight:   1.70,
                   color:        textColor,
                   textAlign:    "center",
-                  paddingTop:   "0.50em",
-                  paddingBottom:"0.32em",
                   direction:    "rtl",
                   unicodeBidi:  "bidi-override",
                 }}
@@ -495,15 +494,15 @@ function SurahBanner({
 
   return (
     <div style={{
-      width:        "100%",
-      maxWidth:     720,
-      margin:       `${isFirst ? 0 : fontSize * 0.55}px auto ${fontSize * 0.30}px`,
+      width:   "100%",
+      maxWidth: 800,
+      margin:  `${isFirst ? 0 : fontSize * 0.50}px auto ${fontSize * 0.28}px`,
     }}>
       {/* ── Top rule ─── */}
       <div style={{
         height:       1,
         background:   `linear-gradient(to right, transparent, ${bannerBorder}70, transparent)`,
-        marginBottom: fontSize * 0.15,
+        marginBottom: fontSize * 0.13,
       }} />
 
       {/* ── Banner box ── */}
@@ -511,30 +510,35 @@ function SurahBanner({
         background:    bannerBg,
         border:        `1px solid ${bannerBorder}40`,
         borderRadius:  6,
-        paddingTop:    fontSize * 0.18,
-        paddingBottom: fontSize * 0.14,
-        paddingLeft:   fontSize * 0.6,
-        paddingRight:  fontSize * 0.6,
-        textAlign:     "center",
+        paddingTop:    fontSize * 0.16,
+        paddingBottom: fontSize * 0.12,
+        paddingLeft:   fontSize * 0.5,
+        paddingRight:  fontSize * 0.5,
         boxShadow:     `0 1px 6px ${shadowColor}`,
+        /* True-center everything inside, immune to RTL side-effects */
+        display:        "flex",
+        flexDirection:  "column",
+        alignItems:     "center",
+        textAlign:      "center",
       }}>
         {/* Arabic surah name — larger and prominent */}
-        <div dir="rtl" style={{
+        <div style={{
           fontFamily:    '"Amiri Quran", "Amiri", serif',
           fontSize:      fontSize * 1.05,
           color:         accentColor,
           fontWeight:    "bold",
           lineHeight:    1.35,
-          letterSpacing: 0,
+          direction:     "rtl",   /* CSS only — does NOT affect box centering */
+          textAlign:     "center",
         }}>
           سُورَةُ {chapter.name_arabic}
         </div>
 
-        {/* Subtitle — small, tight below title */}
+        {/* Subtitle */}
         <div style={{
           fontSize:      Math.max(10, fontSize * 0.22),
           color:         subtitleColor,
-          marginTop:     fontSize * 0.06,
+          marginTop:     fontSize * 0.05,
           letterSpacing: "0.07em",
           fontWeight:    600,
           textTransform: "uppercase",
@@ -547,19 +551,20 @@ function SurahBanner({
       <div style={{
         height:    1,
         background: `linear-gradient(to right, transparent, ${bannerBorder}70, transparent)`,
-        marginTop: fontSize * 0.15,
+        marginTop: fontSize * 0.13,
       }} />
 
-      {/* ── Bismillah (only if needed) ── */}
+      {/* ── Bismillah ── */}
       {chapter.bismillah_pre && chapter.id !== 9 && (
-        <div dir="rtl" style={{
+        <div style={{
           fontFamily:   '"Amiri Quran", "Amiri", serif',
           fontSize:     fontSize * 0.88,
           color:        accentColor,
           textAlign:    "center",
-          lineHeight:   1.7,
-          marginTop:    fontSize * 0.12,
-          marginBottom: fontSize * 0.06,
+          direction:    "rtl",
+          lineHeight:   1.65,
+          marginTop:    fontSize * 0.10,
+          marginBottom: fontSize * 0.04,
           opacity:      0.88,
         }}>
           بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ

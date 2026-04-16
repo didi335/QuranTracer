@@ -1,0 +1,74 @@
+Fix the Surah title alignment and increase the Quran text size so the layout is properly centered and readable.
+
+1. True Center Alignment (CRITICAL):
+- The Surah title is NOT perfectly centered — it is being pushed off by side elements (icons/buttons).
+
+Fix:
+- Center the title using absolute or flex positioning that ignores side elements.
+
+Implementation:
+- Wrap the header in a relative container.
+- Place the title in a centered container using:
+   - display: flex
+   - justify-content: center
+   - align-items: center
+
+OR:
+- Use position: absolute; left: 50%; transform: translateX(-50%);
+
+- Ensure left/right icons do NOT affect centering.
+
+2. Separate Side Icons from Title:
+- The icons on the left and right should be positioned independently.
+
+Fix:
+- Use:
+   - position: absolute;
+   - left: 0; (for left icon)
+   - right: 0; (for right icon)
+
+- Keep them vertically aligned with the title, but NOT influencing layout width.
+
+3. Increase Quran Text Size (VERY IMPORTANT):
+- The Quran text is currently too small and not using enough screen space.
+
+Fix:
+- Increase font size significantly:
+   - Use responsive scaling (e.g., clamp or vw units)
+
+Example:
+- font-size: clamp(28px, 4vw, 48px);
+
+- Ensure text fills more of the page width without breaking readability.
+
+4. Improve Text Container Width:
+- The Quran text is too narrow.
+
+Fix:
+- Increase max-width of the text container.
+- Reduce unnecessary side margins.
+
+Example:
+- max-width: 800px–1000px;
+- margin: 0 auto;
+
+5. Line Spacing:
+- Slightly increase line height for readability.
+
+Example:
+- line-height: 1.8–2;
+
+6. Visual Balance:
+- The Quran text should now dominate the screen.
+- The header should feel secondary and compact.
+
+7. Final Check:
+- Title must be perfectly centered regardless of icons.
+- Quran text should appear larger, clearer, and more prominent.
+- No awkward empty space on sides.
+
+Output:
+- Fix true centering of the Surah title.
+- Reposition icons so they don’t affect layout.
+- Increase Quran text size and width.
+- Provide updated working code.
