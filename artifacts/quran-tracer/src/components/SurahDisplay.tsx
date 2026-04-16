@@ -359,17 +359,16 @@ function PageContent({ page, verses, chapterMap, isDark, showText, containerH }:
 
     const banners      = pageLines.filter(pl => pl.newChapter);
     const hasBismillah = banners.some(pl => pl.newChapter!.bismillah_pre && pl.newChapter!.id !== 9);
-    // Banner with generous paddingTop ≈ 3.5 line-slots; bismillah ≈ 1.3 extra
-    const bannerRows   = banners.length * 3.5 + (hasBismillah ? 1.3 : 0);
-    const totalRows    = pageLines.length + bannerRows + 1.2; // +1.2 for footer
+    // Compact banner ≈ 2.4 line-slots; bismillah ≈ 1.3 extra
+    const bannerRows   = banners.length * 2.4 + (hasBismillah ? 1.3 : 0);
+    const totalRows    = pageLines.length + bannerRows + 1.2;
 
-    const padV  = h * 0.030;
+    const padV  = h * 0.045;
     const avail = h - padV * 2;
-    // Divide by 0.5 × totalRows so only ~half the page fits on screen at once
-    let   fs    = avail / (totalRows * 0.85);
+    let   fs    = avail / (totalRows * 1.70);
 
-    const maxByWidth = (w * 0.96) / 13;
-    fs = Math.min(fs, maxByWidth, 96);
+    const maxByWidth = (w * 0.94) / 15;
+    fs = Math.min(fs, maxByWidth, 64);
     fs = Math.max(fs, 14);
     setFontSize(Math.round(fs));
   }, [pageLines, containerH]);
@@ -417,12 +416,11 @@ function PageContent({ page, verses, chapterMap, isDark, showText, containerH }:
           }} />
         </div>
       ) : (
-        /* Lines — starts from top; overflow is clipped (half-page view) */
+        /* Lines */
         <div style={{
           flex: 1, display: "flex", flexDirection: "column",
           width: "100%", maxWidth: 960, margin: "0 auto",
-          justifyContent: "flex-start",
-          overflow: "hidden",
+          justifyContent: "center",
         }}>
           {pageLines.map((pl, i) => (
             <div key={pl.lineNumber}>
@@ -512,12 +510,11 @@ function SurahBanner({
         background:    bannerBg,
         border:        `1px solid ${bannerBorder}40`,
         borderRadius:  6,
-        paddingTop:    fontSize * 0.20,
-        paddingBottom: fontSize * 0.18,
+        paddingTop:    fontSize * 0.16,
+        paddingBottom: fontSize * 0.12,
         paddingLeft:   fontSize * 0.5,
         paddingRight:  fontSize * 0.5,
         boxShadow:     `0 1px 6px ${shadowColor}`,
-        overflow:      "hidden",   /* clips any ink that escapes the padding */
         display:        "flex",
         flexDirection:  "column",
         alignItems:     "center",
@@ -529,7 +526,7 @@ function SurahBanner({
           fontSize:      fontSize * 1.05,
           color:         accentColor,
           fontWeight:    "bold",
-          lineHeight:    2.2,
+          lineHeight:    1.35,
           direction:     "rtl",
           textAlign:     "center",
         }}>
