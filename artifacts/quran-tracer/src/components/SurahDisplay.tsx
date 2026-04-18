@@ -191,8 +191,9 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
 
     const onPtrDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
       const isPen   = e.pointerType === "pen";
+      const isMouse = e.pointerType === "mouse";
       const isTouch = e.pointerType === "touch";
-      if (isPen || (isTouch && !showText)) {
+      if (isPen || isMouse || (isTouch && !showText)) {
         if (isTouch && !e.isPrimary) return;
         e.preventDefault();
         startDrawing(getCanvasPoint(e.clientX, e.clientY, e.pressure > 0 ? e.pressure : 0.5));
@@ -202,9 +203,11 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
 
     const onPtrMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
       const isPen   = e.pointerType === "pen";
+      const isMouse = e.pointerType === "mouse";
       const isTouch = e.pointerType === "touch";
-      if (isPen || (isTouch && !showText)) {
+      if (isPen || isMouse || (isTouch && !showText)) {
         if (isTouch && !e.isPrimary) return;
+        if ((isPen || isMouse) && e.buttons === 0) return; // mouse/pen button not held
         e.preventDefault();
         draw(getCanvasPoint(e.clientX, e.clientY, e.pressure > 0 ? e.pressure : 0.5));
       }
@@ -212,8 +215,9 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
 
     const onPtrUp = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
       const isPen   = e.pointerType === "pen";
+      const isMouse = e.pointerType === "mouse";
       const isTouch = e.pointerType === "touch";
-      if (isPen || (isTouch && !showText)) stopDrawing();
+      if (isPen || isMouse || (isTouch && !showText)) stopDrawing();
     }, [stopDrawing, showText]);
 
     /* ── Theme ───────────────────────────────────────────────── */
