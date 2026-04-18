@@ -63,7 +63,7 @@ export function Toolbar({
             onClick={() => onPenChange({ mode: "eraser" })}
             className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-sm font-semibold transition-all active:scale-95"
             style={{
-              background: penSettings.mode === "eraser" ? (isDark ? "#d4af37" : "#c0392b") : (isDark ? "#2a2a4e" : "#f0ece0"),
+              background: penSettings.mode === "eraser" ? accentColor : (isDark ? "#2a2a4e" : "#f0ece0"),
               color:      penSettings.mode === "eraser" ? "#fff" : (isDark ? "#c0c0e0" : "#1a1a2e"),
             }}
           >
