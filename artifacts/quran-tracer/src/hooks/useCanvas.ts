@@ -91,9 +91,7 @@ export function useCanvas(penSettings: PenSettings, containerRef: RefObject<HTML
 
       ctx.beginPath();
       ctx.moveTo(lastPoint.current.x, lastPoint.current.y);
-      const midX = (lastPoint.current.x + point.x) / 2;
-      const midY = (lastPoint.current.y + point.y) / 2;
-      ctx.quadraticCurveTo(lastPoint.current.x, lastPoint.current.y, midX, midY);
+      ctx.lineTo(point.x, point.y);
       ctx.stroke();
       ctx.restore();
 
