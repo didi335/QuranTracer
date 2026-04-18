@@ -365,12 +365,12 @@ function PageContent({ page, verses, chapterMap, isDark, showText, containerH }:
 
     const padV  = h * 0.045;
     const avail = h - padV * 2;
-    let   fs    = avail / (totalRows * 1.70);
+    let   fs    = avail / (totalRows * 1.57);
 
     const maxByWidth = (w * 0.94) / 15;
     fs = Math.min(fs, maxByWidth, 64);
     fs = Math.max(fs, 14);
-    setFontSize(Math.round(fs) + 3);
+    setFontSize(Math.round(fs));
   }, [pageLines, containerH]);
 
   useEffect(() => { computeFontSize(); }, [computeFontSize]);
@@ -439,7 +439,7 @@ function PageContent({ page, verses, chapterMap, isDark, showText, containerH }:
                 style={{
                   fontFamily,
                   fontSize,
-                  lineHeight:   1.70,
+                  lineHeight:   1.57,
                   color:        textColor,
                   textAlign:    "center",
                   direction:    "rtl",
