@@ -41,6 +41,40 @@ export function Toolbar({
 
   const inner = (
     <div className="flex flex-col gap-5 w-full">
+
+      {/* Tool selector */}
+      <div>
+        <label className={`text-xs font-semibold uppercase tracking-wider mb-2 block ${mutedText}`}>Tool</label>
+        <div className="flex gap-2">
+          <button
+            onClick={() => onPenChange({ mode: "pen" })}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-sm font-semibold transition-all active:scale-95"
+            style={{
+              background: penSettings.mode === "pen" ? accentColor : (isDark ? "#2a2a4e" : "#f0ece0"),
+              color:      penSettings.mode === "pen" ? "#fff" : (isDark ? "#c0c0e0" : "#1a1a2e"),
+            }}
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536M9 11l6.293-6.293a1 1 0 011.414 0l2.586 2.586a1 1 0 010 1.414L13 15H9v-4z" />
+            </svg>
+            Pen
+          </button>
+          <button
+            onClick={() => onPenChange({ mode: "eraser" })}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-sm font-semibold transition-all active:scale-95"
+            style={{
+              background: penSettings.mode === "eraser" ? (isDark ? "#d4af37" : "#c0392b") : (isDark ? "#2a2a4e" : "#f0ece0"),
+              color:      penSettings.mode === "eraser" ? "#fff" : (isDark ? "#c0c0e0" : "#1a1a2e"),
+            }}
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-1 12H6L5 7m5 4v6m4-6v6M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2M4 7h16" />
+            </svg>
+            Eraser
+          </button>
+        </div>
+      </div>
+
       {/* Color */}
       <div>
         <label className={`text-xs font-semibold uppercase tracking-wider mb-2 block ${mutedText}`}>Color</label>

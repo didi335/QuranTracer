@@ -19,7 +19,7 @@ export default function TracerPage() {
   const [leftTab,     setLeftTab]     = useState<LeftTab>("surahs");
   const [rightOpen,   setRightOpen]   = useState(false);
   const [penSettings, setPenSettings] = useState<PenSettings>({
-    color: "#1a1a2e", thickness: 5, opacity: 0.90,
+    color: "#1a1a2e", thickness: 5, opacity: 0.90, mode: "pen",
   });
 
   const displayRef = useRef<SurahDisplayHandle>(null);
