@@ -370,7 +370,7 @@ function PageContent({ page, verses, chapterMap, isDark, showText, containerH }:
     const maxByWidth = (w * 0.94) / 15;
     fs = Math.min(fs, maxByWidth, 64);
     fs = Math.max(fs, 14);
-    setFontSize(Math.round(fs));
+    setFontSize(Math.round(fs) + 3);
   }, [pageLines, containerH]);
 
   useEffect(() => { computeFontSize(); }, [computeFontSize]);
