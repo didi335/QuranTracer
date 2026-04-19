@@ -62,6 +62,11 @@ export function useQuran(): QuranState {
       .catch(() => inflight.current.delete(p));
   }, []);
 
+  /* Pre-fetch all pages in a range (for continuous scroll) */
+  const fetchRange = useCallback((start: number, end: number) => {
+    for (let p = start; p <= end; p++) fetchPage(p);
+  }, [fetchPage]);
+
   const loadAround = useCallback((page: number) => {
     const p = Math.max(1, Math.min(TOTAL_PAGES, page));
     fetchPage(p);
@@ -76,13 +81,16 @@ export function useQuran(): QuranState {
     fetchChapters()
       .then((chs) => {
         setChapters(chs);
-        /* Auto-select surah 1 on first load */
         setSelectedChapterId(1);
         fetchChapterFirstPage(1).then((startPage) => {
           fetchChapterFirstPage(2).then((nextStart) => {
             const endPage = Math.max(startPage, nextStart - 1);
             setSurahRange({ start: startPage, end: endPage });
-          }).catch(() => setSurahRange({ start: startPage, end: startPage }));
+            fetchRange(startPage, endPage);
+          }).catch(() => {
+            setSurahRange({ start: startPage, end: startPage });
+            fetchRange(startPage, startPage);
+          });
         }).catch(() => {});
       })
       .catch((e) => setError(e.message));
@@ -123,12 +131,14 @@ export function useQuran(): QuranState {
         const range = { start: startPage, end: endPage };
         surahRangeRef.current = range;
         setSurahRange(range);
+        /* Pre-fetch every page in the surah for seamless continuous scroll */
+        fetchRange(startPage, endPage);
         const p = Math.max(1, Math.min(TOTAL_PAGES, startPage));
         setCurrentPage(p);
         setLoading(!cache.current.has(p));
       })
       .catch((e) => { setError(e.message); setLoading(false); });
-  }, []);
+  }, [fetchRange]);
 
   const getVerses = useCallback((page: number): Verse[] => {
     // eslint-disable-next-line @typescript-eslint/no-unused-expressions
