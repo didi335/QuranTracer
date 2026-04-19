@@ -95,9 +95,10 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
       return () => ro.disconnect();
     }, [syncCanvas]);
 
-    /* ── Reset scroll to top on page change ─────────────────── */
+    /* ── Reset scroll to top on page change (smooth) ────────── */
     useEffect(() => {
-      if (scrollRef.current) scrollRef.current.scrollTop = 0;
+      if (scrollRef.current)
+        scrollRef.current.scrollTo({ top: 0, behavior: "smooth" });
     }, [currentPage]);
 
     useImperativeHandle(ref, () => ({
@@ -211,6 +212,8 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
             overflowY: "auto",
             overflowX: "hidden",
             WebkitOverflowScrolling: "touch",
+            scrollBehavior: "smooth",
+            overscrollBehavior: "contain",
             scrollbarWidth: "thin",
             scrollbarColor: isDark ? "#2a2a4e transparent" : "#d8d3c0 transparent",
             touchAction: showText ? "pan-y" : "none",
@@ -222,21 +225,26 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
           onPointerLeave={onPtrUp}
           onPointerCancel={onPtrUp}
         >
-          <PageContent
-            page={currentPage}
-            verses={getVerses(currentPage)}
-            chapterMap={chapterMap}
-            chapters={chapters}
-            isDark={isDark}
-            showText={showText}
-            selectedChapterId={selectedChapterId}
-            isLastPage={isLastPage}
-            isFirstPage={isFirstPage}
-            surahRange={surahRange}
-            onNextPage={() => onPageChange(currentPage + 1)}
-            onPrevPage={() => onPageChange(currentPage - 1)}
-            onSelectSurah={onSelectSurah}
-          />
+          <div
+            key={currentPage}
+            style={{ animation: "fadeSlideIn 0.35s cubic-bezier(0.22,1,0.36,1) both" }}
+          >
+            <PageContent
+              page={currentPage}
+              verses={getVerses(currentPage)}
+              chapterMap={chapterMap}
+              chapters={chapters}
+              isDark={isDark}
+              showText={showText}
+              selectedChapterId={selectedChapterId}
+              isLastPage={isLastPage}
+              isFirstPage={isFirstPage}
+              surahRange={surahRange}
+              onNextPage={() => onPageChange(currentPage + 1)}
+              onPrevPage={() => onPageChange(currentPage - 1)}
+              onSelectSurah={onSelectSurah}
+            />
+          </div>
         </div>
 
         {/* ── Canvas overlay (pointer-events:none) ──────────── */}
