@@ -154,6 +154,7 @@ export default function TracerPage() {
             penSettings={penSettings}
             isDark={isDark}
             onPageChange={quran.goToPage}
+            surahRange={quran.surahRange}
           />
         </div>
 

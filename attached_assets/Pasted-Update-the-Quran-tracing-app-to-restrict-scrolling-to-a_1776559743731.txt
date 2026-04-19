@@ -1,0 +1,78 @@
+Update the Quran tracing app to restrict scrolling to a single Surah and fix touch interaction issues on iPad.
+
+1. Restrict to One Surah (CRITICAL):
+- When a Surah is selected, ONLY that Surah should be loaded and displayed.
+- Do NOT preload or append the next Surah below it.
+
+Fix:
+- Remove continuous multi-Surah scrolling.
+- The scrollable content must end exactly at the last ayah of the selected Surah.
+
+2. Stop Scroll at End:
+- When the user reaches the end of the Surah:
+   - Scrolling should stop naturally.
+   - Do NOT continue into another Surah.
+
+- Ensure:
+   - No hidden content below
+   - No accidental loading of next Surah
+
+3. Surah Navigation:
+- Users should ONLY change Surahs via the left panel (Surah list).
+- When a new Surah is selected:
+   - Replace the current content entirely
+   - Reset scroll to top
+
+4. Scroll Container Control:
+- Ensure the scroll container only contains:
+   - Pages belonging to the selected Surah
+
+- Do NOT include:
+   - Previous Surah
+   - Next Surah
+
+5. iPad Touch Fix (VERY IMPORTANT):
+- Fix issue where scrolling does not work properly with touch.
+
+Ensure:
+- Smooth vertical scrolling with finger swipe
+- No blocking from canvas or overlays
+
+Technical fixes:
+- Use:
+   - overflow-y: auto;
+   - -webkit-overflow-scrolling: touch;
+
+- Ensure canvas layer:
+   - Uses pointer-events properly
+   - Does NOT block scrolling when not drawing
+
+6. Gesture Handling:
+- Allow:
+   - Finger = scroll
+   - Apple Pencil = draw
+
+- Prevent conflict between:
+   - Drawing gestures
+   - Scrolling gestures
+
+7. Performance:
+- Keep scrolling smooth and responsive.
+- No lag when reaching the end of the Surah.
+
+8. UX Behavior:
+- Clean, focused experience:
+   - One Surah at a time
+   - No distractions
+   - No accidental navigation
+
+Important:
+- Do NOT allow scrolling into another Surah.
+- Ensure touch scrolling works reliably on iPad.
+- Maintain proper Quran formatting and alignment.
+
+Output:
+- Restrict app to one Surah per view.
+- Fix scrolling boundaries.
+- Fix iPad touch scrolling issues.
+- Provide updated working code.

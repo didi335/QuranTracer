@@ -4,6 +4,7 @@ import {
 } from "react";
 import { Verse, Chapter, Word, TOTAL_PAGES } from "@/services/quranApi";
 import { useCanvas, PenSettings } from "@/hooks/useCanvas";
+import { SurahRange } from "@/hooks/useQuran";
 
 interface SurahDisplayProps {
   chapters:     Chapter[];
@@ -13,6 +14,7 @@ interface SurahDisplayProps {
   penSettings:  PenSettings;
   isDark:       boolean;
   onPageChange: (page: number) => void;
+  surahRange:   SurahRange | null;
 }
 
 export interface SurahDisplayHandle {
@@ -35,7 +37,7 @@ function injectPageFont(page: number) {
 
 export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
   function SurahDisplay(
-    { chapters, getVerses, currentPage, showText, penSettings, isDark, onPageChange },
+    { chapters, getVerses, currentPage, showText, penSettings, isDark, onPageChange, surahRange },
     ref,
   ) {
     const outerRef  = useRef<HTMLDivElement>(null);
@@ -151,7 +153,16 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
         if (slot === 0 || slot === 2) {
           const delta = slot === 0 ? -1 : 1;
           const next  = Math.max(1, Math.min(TOTAL_PAGES, currentPage + delta));
-          // reset scroll first so snap doesn't fight us
+
+          /* ── Surah boundary: snap back instead of navigating ── */
+          if (surahRange && (next < surahRange.start || next > surahRange.end)) {
+            ignoreNext.current = true;
+            el.scrollTop = slotH;
+            requestAnimationFrame(() => { ignoreNext.current = false; });
+            showCanvas();
+            return;
+          }
+
           ignoreNext.current = true;
           el.scrollTop = slotH;
           requestAnimationFrame(() => { ignoreNext.current = false; });
@@ -160,8 +171,8 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
         } else {
           showCanvas();
         }
-      }, 100);
-    }, [currentPage, onPageChange, slotH]);
+      }, 150);
+    }, [currentPage, onPageChange, slotH, surahRange]);
 
     /* ── Keyboard navigation ─────────────────────────────────── */
     const onPageChangeRef = useRef(onPageChange);
@@ -234,7 +245,7 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
           ref={scrollRef}
           style={{
             position: "absolute", inset: 0,
-            overflowY: "scroll",
+            overflowY: "auto",
             overflowX: "hidden",
             scrollSnapType: "y mandatory",
             WebkitOverflowScrolling: "touch",
@@ -251,6 +262,9 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
         >
           {slotH > 0 && [-1, 0, 1].map((offset) => {
             const page = currentPage + offset;
+            /* Only show content if page is within global bounds AND surah range */
+            const inRange = page >= 1 && page <= TOTAL_PAGES &&
+              (!surahRange || (page >= surahRange.start && page <= surahRange.end));
             return (
               <div
                 key={offset}
@@ -259,11 +273,10 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
                   flexShrink:      0,
                   scrollSnapAlign: "start",
                   overflow:        "hidden",
-                  // Subtle divider between pages
                   borderBottom: offset < 1 ? `3px solid ${divider}` : undefined,
                 }}
               >
-                {page >= 1 && page <= TOTAL_PAGES ? (
+                {inRange ? (
                   <PageContent
                     page={page}
                     verses={getVerses(page)}
@@ -273,7 +286,6 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
                     containerH={slotH}
                   />
                 ) : (
-                  /* Out-of-bounds page (before 1 or after 604) */
                   <div style={{ height: "100%", background: bg }} />
                 )}
               </div>

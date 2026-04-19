@@ -8,11 +8,14 @@ import {
   TOTAL_PAGES,
 } from "@/services/quranApi";
 
+export interface SurahRange { start: number; end: number; }
+
 export interface QuranState {
   chapters:      Chapter[];
   currentPage:   number;
   loading:       boolean;
   error:         string | null;
+  surahRange:    SurahRange | null;
   /** Verses for a given page (returns [] if not yet cached) */
   getVerses:     (page: number) => Verse[];
   goToPage:      (page: number) => void;
@@ -26,13 +29,23 @@ export function useQuran(): QuranState {
   const [currentPage, setCurrentPage] = useState(1);
   const [loading,     setLoading]     = useState(true);
   const [error,       setError]       = useState<string | null>(null);
+  const [surahRange,  setSurahRange]  = useState<SurahRange | null>(null);
 
   /** Cache: page → Verse[] */
-  const cache = useRef<Map<number, Verse[]>>(new Map());
-  /** Track in-flight requests to avoid duplicates */
+  const cache    = useRef<Map<number, Verse[]>>(new Map());
   const inflight = useRef<Set<number>>(new Set());
-  /** Force re-render when cache updates */
   const [cacheVersion, setCacheVersion] = useState(0);
+
+  /* Keep a ref so goToPage can read range without stale closure */
+  const surahRangeRef = useRef<SurahRange | null>(null);
+  useEffect(() => { surahRangeRef.current = surahRange; }, [surahRange]);
+
+  const clampPage = useCallback((p: number) => {
+    p = Math.max(1, Math.min(TOTAL_PAGES, p));
+    const r = surahRangeRef.current;
+    if (r) p = Math.max(r.start, Math.min(r.end, p));
+    return p;
+  }, []);
 
   const fetchPage = useCallback((page: number) => {
     const p = Math.max(1, Math.min(TOTAL_PAGES, page));
@@ -47,42 +60,47 @@ export function useQuran(): QuranState {
       .catch(() => inflight.current.delete(p));
   }, []);
 
-  /** Fetch current page + neighbours eagerly */
   const loadAround = useCallback((page: number) => {
     const p = Math.max(1, Math.min(TOTAL_PAGES, page));
     fetchPage(p);
-    if (p > 1)           fetchPage(p - 1);
-    if (p < TOTAL_PAGES) fetchPage(p + 1);
-    if (p > 2)           fetchPage(p - 2);
+    if (p > 1)               fetchPage(p - 1);
+    if (p < TOTAL_PAGES)     fetchPage(p + 1);
+    if (p > 2)               fetchPage(p - 2);
     if (p < TOTAL_PAGES - 1) fetchPage(p + 2);
   }, [fetchPage]);
 
   /** Bootstrap */
   useEffect(() => {
     fetchChapters()
-      .then((chs) => setChapters(chs))
-      .catch((e)  => setError(e.message));
+      .then((chs) => {
+        setChapters(chs);
+        /* Auto-select surah 1 on first load */
+        fetchChapterFirstPage(1).then((startPage) => {
+          fetchChapterFirstPage(2).then((nextStart) => {
+            const endPage = Math.max(startPage, nextStart - 1);
+            setSurahRange({ start: startPage, end: endPage });
+          }).catch(() => setSurahRange({ start: startPage, end: startPage }));
+        }).catch(() => {});
+      })
+      .catch((e) => setError(e.message));
 
     loadAround(1);
     setLoading(false);
-  }, [loadAround]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  useEffect(() => {
-    loadAround(currentPage);
-  }, [currentPage, loadAround]);
+  useEffect(() => { loadAround(currentPage); }, [currentPage, loadAround]);
 
-  // Mark loading false once current page is in cache
   useEffect(() => {
     if (cache.current.has(currentPage)) setLoading(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cacheVersion, currentPage]);
 
-  const clamp = (p: number) => Math.max(1, Math.min(TOTAL_PAGES, p));
-
   const goToPage = useCallback((page: number) => {
-    setCurrentPage(clamp(page));
-    setLoading(!cache.current.has(clamp(page)));
-  }, []);
+    const p = clampPage(page);
+    setCurrentPage(p);
+    setLoading(!cache.current.has(p));
+  }, [clampPage]);
 
   const nextPage = useCallback(() => goToPage(currentPage + 1), [goToPage, currentPage]);
   const prevPage = useCallback(() => goToPage(currentPage - 1), [goToPage, currentPage]);
@@ -90,25 +108,35 @@ export function useQuran(): QuranState {
   const selectChapter = useCallback((chapter: Chapter) => {
     setLoading(true);
     fetchChapterFirstPage(chapter.id)
-      .then((page) => goToPage(page))
-      .catch((e)   => { setError(e.message); setLoading(false); });
-  }, [goToPage]);
+      .then(async (startPage) => {
+        let endPage = TOTAL_PAGES;
+        if (chapter.id < 114) {
+          try {
+            const nextStart = await fetchChapterFirstPage(chapter.id + 1);
+            /* If adjacent surahs share the start page (both on same page),
+               keep that page as the end; otherwise go one page before next start */
+            endPage = Math.max(startPage, nextStart - 1);
+          } catch { endPage = startPage; }
+        }
+        const range = { start: startPage, end: endPage };
+        surahRangeRef.current = range;
+        setSurahRange(range);
+        /* Navigate to start of surah, bypassing old range */
+        const p = Math.max(1, Math.min(TOTAL_PAGES, startPage));
+        setCurrentPage(p);
+        setLoading(!cache.current.has(p));
+      })
+      .catch((e) => { setError(e.message); setLoading(false); });
+  }, []);
 
   const getVerses = useCallback((page: number): Verse[] => {
     // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-    cacheVersion; // subscribe to cache updates
+    cacheVersion;
     return cache.current.get(Math.max(1, Math.min(TOTAL_PAGES, page))) ?? [];
   }, [cacheVersion]);
 
   return {
-    chapters,
-    currentPage,
-    loading,
-    error,
-    getVerses,
-    goToPage,
-    nextPage,
-    prevPage,
-    selectChapter,
+    chapters, currentPage, loading, error, surahRange,
+    getVerses, goToPage, nextPage, prevPage, selectChapter,
   };
 }
