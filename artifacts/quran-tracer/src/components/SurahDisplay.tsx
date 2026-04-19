@@ -314,7 +314,7 @@ function PageContent({
     ? chapters.find(c => c.id === selectedChapterId + 1) : undefined;
 
   /* ── Theme ─────────────────────────────────────────────── */
-  const textColor    = isDark ? "rgba(220,210,185,0.95)" : "#1a1a2e";
+  const textColor    = isDark ? "rgba(220,210,185,0.60)" : "rgba(26,26,46,0.60)";
   const accentColor  = isDark ? "#d4af37"                : "#1a3a6e";
   const mutedColor   = isDark ? "#6a6a9a"                : "#6b7280";
   const dividerColor = isDark ? "#2a2a4a"                : "#e5e1d5";
