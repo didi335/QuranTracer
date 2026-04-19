@@ -154,6 +154,7 @@ export default function TracerPage() {
             penSettings={penSettings}
             isDark={isDark}
             onPageChange={quran.goToPage}
+            onSelectSurah={quran.selectChapter}
             surahRange={quran.surahRange}
             selectedChapterId={quran.selectedChapterId}
           />

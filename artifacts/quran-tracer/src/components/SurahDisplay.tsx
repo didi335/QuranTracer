@@ -14,6 +14,7 @@ interface SurahDisplayProps {
   penSettings:       PenSettings;
   isDark:            boolean;
   onPageChange:      (page: number) => void;
+  onSelectSurah:     (chapter: Chapter) => void;
   surahRange:        SurahRange | null;
   selectedChapterId: number | null;
 }
@@ -38,7 +39,7 @@ function injectPageFont(page: number) {
 
 export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
   function SurahDisplay(
-    { chapters, getVerses, currentPage, showText, penSettings, isDark, onPageChange, surahRange, selectedChapterId },
+    { chapters, getVerses, currentPage, showText, penSettings, isDark, onPageChange, onSelectSurah, surahRange, selectedChapterId },
     ref,
   ) {
     const outerRef   = useRef<HTMLDivElement>(null);
@@ -208,6 +209,7 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
             page={currentPage}
             verses={getVerses(currentPage)}
             chapterMap={chapterMap}
+            chapters={chapters}
             isDark={isDark}
             showText={showText}
             selectedChapterId={selectedChapterId}
@@ -216,6 +218,7 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
             surahRange={surahRange}
             onNextPage={() => onPageChange(currentPage + 1)}
             onPrevPage={() => onPageChange(currentPage - 1)}
+            onSelectSurah={onSelectSurah}
           />
         </div>
 
@@ -246,6 +249,7 @@ interface PageContentProps {
   page:              number;
   verses:            Verse[];
   chapterMap:        Map<number, Chapter>;
+  chapters:          Chapter[];
   isDark:            boolean;
   showText:          boolean;
   selectedChapterId: number | null;
@@ -254,12 +258,13 @@ interface PageContentProps {
   surahRange:        SurahRange | null;
   onNextPage:        () => void;
   onPrevPage:        () => void;
+  onSelectSurah:     (chapter: Chapter) => void;
 }
 
 function PageContent({
-  page, verses, chapterMap, isDark, showText,
+  page, verses, chapterMap, chapters, isDark, showText,
   selectedChapterId, isLastPage, isFirstPage,
-  surahRange, onNextPage, onPrevPage,
+  surahRange, onNextPage, onPrevPage, onSelectSurah,
 }: PageContentProps) {
 
   /* Filter to selected surah only */
@@ -299,8 +304,12 @@ function PageContent({
     return result;
   }, [filteredVerses, chapterMap]);
 
-  /* ── Selected chapter metadata ─────────────────────────── */
-  const chapter = selectedChapterId ? chapterMap.get(selectedChapterId) : undefined;
+  /* ── Selected chapter metadata + adjacent surahs ─────── */
+  const chapter     = selectedChapterId ? chapterMap.get(selectedChapterId) : undefined;
+  const prevChapter = selectedChapterId && selectedChapterId > 1
+    ? chapters.find(c => c.id === selectedChapterId - 1) : undefined;
+  const nextChapter = selectedChapterId && selectedChapterId < 114
+    ? chapters.find(c => c.id === selectedChapterId + 1) : undefined;
 
   /* ── Theme ─────────────────────────────────────────────── */
   const textColor    = isDark ? "rgba(220,210,185,0.95)" : "#1a1a2e";
@@ -483,57 +492,118 @@ function PageContent({
       {/* ── Page divider ────────────────────────────────── */}
       <div style={{ height: 1, background: dividerColor, margin: "0 5%" }} />
 
-      {/* ── Footer: End of chapter / continue / prev page ─ */}
-      <div style={{
-        display:        "flex",
-        justifyContent: "center",
-        alignItems:     "center",
-        gap:            "2rem",
-        padding:        "1.5rem 5%",
-        opacity,
-        transition,
-      }}>
-        {isLastPage ? (
-          <span style={{
-            fontFamily:    "'Amiri', serif",
-            fontSize:      15,
-            color:         mutedColor,
-            letterSpacing: "0.04em",
-            fontStyle:     "italic",
-          }}>
-            End of Surah
-          </span>
-        ) : (
-          <>
-            <span style={{
-              fontFamily:    "'Amiri', serif",
-              fontSize:      15,
-              color:         mutedColor,
-              letterSpacing: "0.04em",
-            }}>
-              Page {page} of {surahRange?.end}
-            </span>
-            <button
-              onClick={(e) => { e.stopPropagation(); onNextPage(); }}
-              style={{
-                pointerEvents: "all",
-                background:    bgCard,
-                border:        `1px solid ${dividerColor}`,
-                borderRadius:  6,
-                padding:       "0.4rem 1rem",
-                cursor:        "pointer",
-                color:         accentColor,
-                fontSize:      14,
-                fontWeight:    600,
-                letterSpacing: "0.03em",
-              }}
-            >
-              Continue →
-            </button>
-          </>
-        )}
-      </div>
+      {/* ── Footer: surah navigation (always visible at bottom) */}
+      {isLastPage ? (
+        /* Last (or only) page of surah → show prev / next surah buttons */
+        <div style={{
+          display:        "flex",
+          justifyContent: "space-between",
+          alignItems:     "stretch",
+          gap:            "0.75rem",
+          padding:        "1.25rem 5%",
+          opacity,
+          transition,
+        }}>
+          {/* ← Previous surah */}
+          {prevChapter ? (
+            <SurahNavBtn
+              label="← Previous"
+              name={prevChapter.name_simple}
+              arabic={prevChapter.name_arabic}
+              align="left"
+              accentColor={accentColor}
+              mutedColor={mutedColor}
+              dividerColor={dividerColor}
+              bgCard={bgCard}
+              onClick={() => onSelectSurah(prevChapter)}
+            />
+          ) : <div style={{ flex: 1 }} />}
+
+          {/* → Next surah */}
+          {nextChapter ? (
+            <SurahNavBtn
+              label="Next →"
+              name={nextChapter.name_simple}
+              arabic={nextChapter.name_arabic}
+              align="right"
+              accentColor={accentColor}
+              mutedColor={mutedColor}
+              dividerColor={dividerColor}
+              bgCard={bgCard}
+              onClick={() => onSelectSurah(nextChapter)}
+            />
+          ) : <div style={{ flex: 1 }} />}
+        </div>
+      ) : (
+        /* Multi-page surah — still on intermediate page → "Continue" only */
+        <div style={{
+          display:        "flex",
+          justifyContent: "flex-end",
+          padding:        "1.25rem 5%",
+          opacity,
+          transition,
+        }}>
+          <button
+            onClick={(e) => { e.stopPropagation(); onNextPage(); }}
+            style={{
+              pointerEvents: "all",
+              background:    bgCard,
+              border:        `1px solid ${dividerColor}`,
+              borderRadius:  8,
+              padding:       "0.5rem 1.2rem",
+              cursor:        "pointer",
+              color:         accentColor,
+              fontSize:      14,
+              fontWeight:    600,
+            }}
+          >
+            Continue →
+          </button>
+        </div>
+      )}
     </div>
+  );
+}
+
+/* ── Surah navigation button (prev / next surah) ────────────── */
+function SurahNavBtn({ label, name, arabic, align, accentColor, mutedColor, dividerColor, bgCard, onClick }: {
+  label: string; name: string; arabic: string; align: "left" | "right";
+  accentColor: string; mutedColor: string; dividerColor: string; bgCard: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={(e) => { e.stopPropagation(); onClick(); }}
+      style={{
+        pointerEvents:  "all",
+        flex:           1,
+        background:     bgCard,
+        border:         `1px solid ${dividerColor}`,
+        borderRadius:   10,
+        padding:        "0.75rem 1rem",
+        cursor:         "pointer",
+        textAlign:      align,
+        display:        "flex",
+        flexDirection:  "column",
+        gap:            "0.15rem",
+      }}
+    >
+      <span style={{ fontSize: 11, color: mutedColor, fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase" }}>
+        {label}
+      </span>
+      <span style={{ fontSize: 15, color: accentColor, fontWeight: 700 }}>
+        {name}
+      </span>
+      <span style={{
+        fontFamily: '"Amiri Quran", "Amiri", serif',
+        fontSize: 18,
+        color: accentColor,
+        direction: "rtl",
+        opacity: 0.75,
+      }}>
+        {arabic}
+      </span>
+    </button>
   );
 }
 
