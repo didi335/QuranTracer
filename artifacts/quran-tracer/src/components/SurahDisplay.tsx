@@ -46,6 +46,28 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
     const scrollRef  = useRef<HTMLDivElement>(null);
     const dummyRef   = useRef<HTMLDivElement>(null);
 
+    /* ── Crossfade transition state ──────────────────────────── */
+    const FADE_MS = 380;
+    const [visiblePage,   setVisiblePage]   = useState(currentPage);
+    const [exitingPage,   setExitingPage]   = useState<number | null>(null);
+    const [exitingVerses, setExitingVerses] = useState<Verse[]>([]);
+    const transTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    useEffect(() => {
+      if (currentPage === visiblePage) return;
+      /* snapshot the outgoing page's verses before switching */
+      setExitingPage(visiblePage);
+      setExitingVerses(getVerses(visiblePage));
+      setVisiblePage(currentPage);
+      if (transTimer.current) clearTimeout(transTimer.current);
+      transTimer.current = setTimeout(() => {
+        setExitingPage(null);
+        setExitingVerses([]);
+      }, FADE_MS + 50);
+      return () => { if (transTimer.current) clearTimeout(transTimer.current); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentPage]);
+
     const {
       canvasRef, startDrawing, draw, stopDrawing,
       undo, clear, clearHistory, downloadAsImage, getCanvasPoint,
@@ -204,7 +226,35 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
         ref={outerRef}
         style={{ position: "relative", width: "100%", height: "100%", background: bg, overflow: "hidden" }}
       >
-        {/* ── Scrollable content ────────────────────────────── */}
+        {/* ── Exiting page (fades out beneath the new one) ──── */}
+        {exitingPage !== null && (
+          <div
+            key={`exit-${exitingPage}`}
+            style={{
+              position: "absolute", inset: 0, overflowY: "hidden", overflowX: "hidden",
+              pointerEvents: "none", zIndex: 0,
+              animation: `fadeSlideOut ${FADE_MS}ms ease both`,
+            }}
+          >
+            <PageContent
+              page={exitingPage}
+              verses={exitingVerses}
+              chapterMap={chapterMap}
+              chapters={chapters}
+              isDark={isDark}
+              showText={showText}
+              selectedChapterId={selectedChapterId}
+              isLastPage={false}
+              isFirstPage={false}
+              surahRange={surahRange}
+              onNextPage={() => {}}
+              onPrevPage={() => {}}
+              onSelectSurah={() => {}}
+            />
+          </div>
+        )}
+
+        {/* ── Scrollable content (active page, fades in) ──────── */}
         <div
           ref={scrollRef}
           style={{
@@ -217,6 +267,7 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
             scrollbarWidth: "thin",
             scrollbarColor: isDark ? "#2a2a4e transparent" : "#d8d3c0 transparent",
             touchAction: showText ? "pan-y" : "none",
+            zIndex: 1,
           } as React.CSSProperties}
           onScroll={onScroll}
           onPointerDown={onPtrDown}
@@ -226,12 +277,12 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
           onPointerCancel={onPtrUp}
         >
           <div
-            key={currentPage}
-            style={{ animation: "fadeSlideIn 0.35s cubic-bezier(0.22,1,0.36,1) both" }}
+            key={visiblePage}
+            style={{ animation: `fadeSlideIn ${FADE_MS}ms ease both` }}
           >
             <PageContent
-              page={currentPage}
-              verses={getVerses(currentPage)}
+              page={visiblePage}
+              verses={getVerses(visiblePage)}
               chapterMap={chapterMap}
               chapters={chapters}
               isDark={isDark}
