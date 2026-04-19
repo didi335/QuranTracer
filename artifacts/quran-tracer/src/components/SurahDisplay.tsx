@@ -114,13 +114,28 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
     const hideCanvas = () => { if (canvasRef.current) canvasRef.current.style.opacity = "0"; };
     const showCanvas = () => { if (canvasRef.current) canvasRef.current.style.opacity = "1"; };
 
-    /* ── Scroll: hide canvas while scrolling, show when done ── */
-    const scrollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    /* ── Scroll: hide canvas while scrolling; auto-advance page ─ */
+    const scrollTimer   = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const didAdvance    = useRef(false);
+
     const onScroll = useCallback(() => {
       hideCanvas();
       if (scrollTimer.current) clearTimeout(scrollTimer.current);
-      scrollTimer.current = setTimeout(showCanvas, 200);
-    }, []);
+      scrollTimer.current = setTimeout(() => {
+        showCanvas();
+        const el = scrollRef.current;
+        if (!el) return;
+        const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 40;
+        const isLast   = surahRange ? currentPage >= surahRange.end : true;
+        if (atBottom && !isLast && !didAdvance.current) {
+          didAdvance.current = true;
+          onPageChange(currentPage + 1);
+        }
+      }, 120);
+    }, [currentPage, onPageChange, surahRange]);
+
+    /* Reset advance guard when page changes */
+    useEffect(() => { didAdvance.current = false; }, [currentPage]);
 
     /* ── Keyboard navigation ─────────────────────────────────── */
     const onPageChangeRef = useRef(onPageChange);
@@ -537,30 +552,16 @@ function PageContent({
           ) : <div style={{ flex: 1 }} />}
         </div>
       ) : (
-        /* Multi-page surah — still on intermediate page → "Continue" only */
+        /* Multi-page surah — scroll down to advance to next page */
         <div style={{
-          display:        "flex",
-          justifyContent: "flex-end",
-          padding:        "1.25rem 5%",
-          opacity,
+          textAlign:  "center",
+          padding:    "1rem 5% 1.5rem",
+          opacity:    showText ? 0.35 : 0,
           transition,
         }}>
-          <button
-            onClick={(e) => { e.stopPropagation(); onNextPage(); }}
-            style={{
-              pointerEvents: "all",
-              background:    bgCard,
-              border:        `1px solid ${dividerColor}`,
-              borderRadius:  8,
-              padding:       "0.5rem 1.2rem",
-              cursor:        "pointer",
-              color:         accentColor,
-              fontSize:      14,
-              fontWeight:    600,
-            }}
-          >
-            Continue →
-          </button>
+          <span style={{ fontSize: 12, color: mutedColor, letterSpacing: "0.06em", textTransform: "uppercase" }}>
+            scroll for next page
+          </span>
         </div>
       )}
     </div>
