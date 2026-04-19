@@ -7,14 +7,15 @@ import { useCanvas, PenSettings } from "@/hooks/useCanvas";
 import { SurahRange } from "@/hooks/useQuran";
 
 interface SurahDisplayProps {
-  chapters:     Chapter[];
-  getVerses:    (page: number) => Verse[];
-  currentPage:  number;
-  showText:     boolean;
-  penSettings:  PenSettings;
-  isDark:       boolean;
-  onPageChange: (page: number) => void;
-  surahRange:   SurahRange | null;
+  chapters:          Chapter[];
+  getVerses:         (page: number) => Verse[];
+  currentPage:       number;
+  showText:          boolean;
+  penSettings:       PenSettings;
+  isDark:            boolean;
+  onPageChange:      (page: number) => void;
+  surahRange:        SurahRange | null;
+  selectedChapterId: number | null;
 }
 
 export interface SurahDisplayHandle {
@@ -37,7 +38,7 @@ function injectPageFont(page: number) {
 
 export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
   function SurahDisplay(
-    { chapters, getVerses, currentPage, showText, penSettings, isDark, onPageChange, surahRange },
+    { chapters, getVerses, currentPage, showText, penSettings, isDark, onPageChange, surahRange, selectedChapterId },
     ref,
   ) {
     const outerRef  = useRef<HTMLDivElement>(null);
@@ -284,6 +285,7 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
                     isDark={isDark}
                     showText={showText}
                     containerH={slotH}
+                    selectedChapterId={selectedChapterId}
                   />
                 ) : (
                   <div style={{ height: "100%", background: bg }} />
@@ -318,15 +320,24 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
    Page content (one Mushaf page, dynamically sized to fit)
    ════════════════════════════════════════════════════════════ */
 interface PageContentProps {
-  page:       number;
-  verses:     Verse[];
-  chapterMap: Map<number, Chapter>;
-  isDark:     boolean;
-  showText:   boolean;
-  containerH: number;
+  page:              number;
+  verses:            Verse[];
+  chapterMap:        Map<number, Chapter>;
+  isDark:            boolean;
+  showText:          boolean;
+  containerH:        number;
+  selectedChapterId: number | null;
 }
 
-function PageContent({ page, verses, chapterMap, isDark, showText, containerH }: PageContentProps) {
+function PageContent({ page, verses, chapterMap, isDark, showText, containerH, selectedChapterId }: PageContentProps) {
+  /* Filter to only the selected surah's verses so short surahs fill their
+     own full-viewport page even when they share a mushaf page with others. */
+  const filteredVerses = useMemo(
+    () => selectedChapterId != null
+      ? verses.filter(v => v.chapter_id === selectedChapterId)
+      : verses,
+    [verses, selectedChapterId],
+  );
   const pageRef  = useRef<HTMLDivElement>(null);
   const [fontSize, setFontSize] = useState(34);
 
@@ -341,9 +352,9 @@ function PageContent({ page, verses, chapterMap, isDark, showText, containerH }:
   type PageLine = { lineNumber: number; words: Word[]; newChapter?: Chapter };
 
   const pageLines = useMemo<PageLine[]>(() => {
-    if (!verses.length) return [];
+    if (!filteredVerses.length) return [];
     const allWords: (Word & { verse_number: number; chapter_id: number })[] = [];
-    for (const v of verses)
+    for (const v of filteredVerses)
       for (const w of v.words)
         allWords.push({ ...w, verse_number: v.verse_number, chapter_id: v.chapter_id });
 
@@ -420,7 +431,7 @@ function PageContent({ page, verses, chapterMap, isDark, showText, containerH }:
         overflow:      "hidden",
       }}
     >
-      {!verses.length ? (
+      {!filteredVerses.length ? (
         /* Loading state */
         <div style={{ display: "flex", flex: 1, justifyContent: "center", alignItems: "center" }}>
           <div style={{

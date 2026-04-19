@@ -155,6 +155,7 @@ export default function TracerPage() {
             isDark={isDark}
             onPageChange={quran.goToPage}
             surahRange={quran.surahRange}
+            selectedChapterId={quran.selectedChapterId}
           />
         </div>
 

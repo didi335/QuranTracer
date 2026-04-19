@@ -11,25 +11,27 @@ import {
 export interface SurahRange { start: number; end: number; }
 
 export interface QuranState {
-  chapters:      Chapter[];
-  currentPage:   number;
-  loading:       boolean;
-  error:         string | null;
-  surahRange:    SurahRange | null;
+  chapters:          Chapter[];
+  currentPage:       number;
+  loading:           boolean;
+  error:             string | null;
+  surahRange:        SurahRange | null;
+  selectedChapterId: number | null;
   /** Verses for a given page (returns [] if not yet cached) */
-  getVerses:     (page: number) => Verse[];
-  goToPage:      (page: number) => void;
-  nextPage:      () => void;
-  prevPage:      () => void;
-  selectChapter: (chapter: Chapter) => void;
+  getVerses:         (page: number) => Verse[];
+  goToPage:          (page: number) => void;
+  nextPage:          () => void;
+  prevPage:          () => void;
+  selectChapter:     (chapter: Chapter) => void;
 }
 
 export function useQuran(): QuranState {
-  const [chapters,    setChapters]    = useState<Chapter[]>([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [loading,     setLoading]     = useState(true);
-  const [error,       setError]       = useState<string | null>(null);
-  const [surahRange,  setSurahRange]  = useState<SurahRange | null>(null);
+  const [chapters,          setChapters]          = useState<Chapter[]>([]);
+  const [currentPage,       setCurrentPage]       = useState(1);
+  const [loading,           setLoading]           = useState(true);
+  const [error,             setError]             = useState<string | null>(null);
+  const [surahRange,        setSurahRange]        = useState<SurahRange | null>(null);
+  const [selectedChapterId, setSelectedChapterId] = useState<number | null>(null);
 
   /** Cache: page → Verse[] */
   const cache    = useRef<Map<number, Verse[]>>(new Map());
@@ -75,6 +77,7 @@ export function useQuran(): QuranState {
       .then((chs) => {
         setChapters(chs);
         /* Auto-select surah 1 on first load */
+        setSelectedChapterId(1);
         fetchChapterFirstPage(1).then((startPage) => {
           fetchChapterFirstPage(2).then((nextStart) => {
             const endPage = Math.max(startPage, nextStart - 1);
@@ -107,21 +110,19 @@ export function useQuran(): QuranState {
 
   const selectChapter = useCallback((chapter: Chapter) => {
     setLoading(true);
+    setSelectedChapterId(chapter.id);
     fetchChapterFirstPage(chapter.id)
       .then(async (startPage) => {
         let endPage = TOTAL_PAGES;
         if (chapter.id < 114) {
           try {
             const nextStart = await fetchChapterFirstPage(chapter.id + 1);
-            /* If adjacent surahs share the start page (both on same page),
-               keep that page as the end; otherwise go one page before next start */
             endPage = Math.max(startPage, nextStart - 1);
           } catch { endPage = startPage; }
         }
         const range = { start: startPage, end: endPage };
         surahRangeRef.current = range;
         setSurahRange(range);
-        /* Navigate to start of surah, bypassing old range */
         const p = Math.max(1, Math.min(TOTAL_PAGES, startPage));
         setCurrentPage(p);
         setLoading(!cache.current.has(p));
@@ -136,7 +137,7 @@ export function useQuran(): QuranState {
   }, [cacheVersion]);
 
   return {
-    chapters, currentPage, loading, error, surahRange,
+    chapters, currentPage, loading, error, surahRange, selectedChapterId,
     getVerses, goToPage, nextPage, prevPage, selectChapter,
   };
 }
