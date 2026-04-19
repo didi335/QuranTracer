@@ -348,17 +348,29 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
               />
 
               {/* Page divider between pages */}
-              <div style={{ display: "flex", alignItems: "center", gap: "1rem", padding: "0.75rem 5%", opacity: showText ? 1 : 0, transition }}>
-                <div style={{ flex: 1, height: 1, background: dividerColor }} />
-                <span style={{
-                  fontSize: 11, fontFamily: "'Amiri', serif",
-                  color: mutedColor, letterSpacing: "0.08em",
-                  opacity: 0.55, whiteSpace: "nowrap",
-                }}>
-                  {surahRange && page < surahRange.end ? `— ${page} —` : ""}
-                </span>
-                <div style={{ flex: 1, height: 1, background: dividerColor }} />
-              </div>
+              {surahRange && page < surahRange.end && (
+                <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", padding: "1rem 5%", opacity: showText ? 1 : 0, transition }}>
+                  <div style={{ flex: 1, height: 1, background: dividerColor }} />
+                  <div style={{
+                    display: "inline-flex", alignItems: "center", gap: "0.35rem",
+                    padding: "0.2rem 0.65rem",
+                    borderRadius: 999,
+                    border: `1px solid ${dividerColor}`,
+                    background: isDark ? "rgba(212,175,55,0.08)" : "rgba(26,58,110,0.06)",
+                  }}>
+                    <svg width="9" height="9" viewBox="0 0 10 10" fill="none" style={{ opacity: 0.5 }}>
+                      <circle cx="5" cy="5" r="4" stroke={accentColor} strokeWidth="1.5" />
+                    </svg>
+                    <span style={{
+                      fontSize: 11, fontFamily: "'Inter', sans-serif", fontWeight: 600,
+                      color: accentColor, letterSpacing: "0.05em",
+                    }}>
+                      {page}
+                    </span>
+                  </div>
+                  <div style={{ flex: 1, height: 1, background: dividerColor }} />
+                </div>
+              )}
             </div>
           ))}
 
