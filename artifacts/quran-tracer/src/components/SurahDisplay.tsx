@@ -41,26 +41,14 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
     { chapters, getVerses, currentPage, showText, penSettings, isDark, onPageChange, surahRange, selectedChapterId },
     ref,
   ) {
-    const outerRef  = useRef<HTMLDivElement>(null);
-    const scrollRef = useRef<HTMLDivElement>(null);
-    const dummyRef  = useRef<HTMLDivElement>(null); // for useCanvas compat
+    const outerRef   = useRef<HTMLDivElement>(null);
+    const scrollRef  = useRef<HTMLDivElement>(null);
+    const dummyRef   = useRef<HTMLDivElement>(null);
 
     const {
       canvasRef, startDrawing, draw, stopDrawing,
       undo, clear, clearHistory, downloadAsImage, getCanvasPoint,
     } = useCanvas(penSettings, dummyRef);
-
-    /* ── Slot height in px (ensures pixel-perfect page separation) ── */
-    const [slotH, setSlotH] = useState(0);
-    useEffect(() => {
-      const el = outerRef.current;
-      if (!el) return;
-      const update = () => setSlotH(el.clientHeight);
-      update();
-      const ro = new ResizeObserver(update);
-      ro.observe(el);
-      return () => ro.disconnect();
-    }, []);
 
     /* ── Font injection ──────────────────────────────────────── */
     useEffect(() => {
@@ -106,6 +94,11 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
       return () => ro.disconnect();
     }, [syncCanvas]);
 
+    /* ── Reset scroll to top on page change ─────────────────── */
+    useEffect(() => {
+      if (scrollRef.current) scrollRef.current.scrollTop = 0;
+    }, [currentPage]);
+
     useImperativeHandle(ref, () => ({
       undo,
       clear,
@@ -116,64 +109,17 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
       ),
     }));
 
-    /* ── Scroll management ───────────────────────────────────── */
-    const ignoreNext = useRef(false);
-    const snapTimer  = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-    /** Jump scroll to the center slot without triggering page-change logic */
-    const snapToCenter = useCallback(() => {
-      const el = scrollRef.current;
-      if (!el || !slotH) return;
-      ignoreNext.current = true;
-      el.scrollTop = slotH;
-      requestAnimationFrame(() => { ignoreNext.current = false; });
-    }, [slotH]);
-
-    // On mount or external page change: reset to center slot
-    const didMount = useRef(false);
-    useEffect(() => {
-      if (!slotH) return;
-      snapToCenter();
-      if (!didMount.current) didMount.current = true;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [currentPage, slotH]);
-
     /* ── Canvas visibility ───────────────────────────────────── */
     const hideCanvas = () => { if (canvasRef.current) canvasRef.current.style.opacity = "0"; };
     const showCanvas = () => { if (canvasRef.current) canvasRef.current.style.opacity = "1"; };
 
-    /* ── Scroll event → page change ──────────────────────────── */
+    /* ── Scroll: hide canvas while scrolling, show when done ── */
+    const scrollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const onScroll = useCallback(() => {
-      if (ignoreNext.current) return;
       hideCanvas();
-      if (snapTimer.current) clearTimeout(snapTimer.current);
-      snapTimer.current = setTimeout(() => {
-        const el = scrollRef.current;
-        if (!el || !slotH) return;
-        const slot = Math.round(el.scrollTop / slotH); // 0 | 1 | 2
-        if (slot === 0 || slot === 2) {
-          const delta = slot === 0 ? -1 : 1;
-          const next  = Math.max(1, Math.min(TOTAL_PAGES, currentPage + delta));
-
-          /* ── Surah boundary: snap back instead of navigating ── */
-          if (surahRange && (next < surahRange.start || next > surahRange.end)) {
-            ignoreNext.current = true;
-            el.scrollTop = slotH;
-            requestAnimationFrame(() => { ignoreNext.current = false; });
-            showCanvas();
-            return;
-          }
-
-          ignoreNext.current = true;
-          el.scrollTop = slotH;
-          requestAnimationFrame(() => { ignoreNext.current = false; });
-          if (next !== currentPage) onPageChange(next);
-          else showCanvas();
-        } else {
-          showCanvas();
-        }
-      }, 150);
-    }, [currentPage, onPageChange, slotH, surahRange]);
+      if (scrollTimer.current) clearTimeout(scrollTimer.current);
+      scrollTimer.current = setTimeout(showCanvas, 200);
+    }, []);
 
     /* ── Keyboard navigation ─────────────────────────────────── */
     const onPageChangeRef = useRef(onPageChange);
@@ -182,7 +128,6 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
 
     useEffect(() => {
       const handler = (e: KeyboardEvent) => {
-        // Don't fire if typing in an input
         if ((e.target as HTMLElement).tagName === "INPUT" ||
             (e.target as HTMLElement).tagName === "TEXTAREA") return;
         if (e.key === "ArrowDown" || e.key === "ArrowRight" || e.key === " ") {
@@ -197,10 +142,7 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
       return () => window.removeEventListener("keydown", handler);
     }, []);
 
-    /* ── Drawing via the SCROLL CONTAINER ────────────────────── */
-    // Canvas is pointer-events:none (purely visual).
-    // We listen on the scroll container so wheel/touch scroll still works natively.
-
+    /* ── Drawing ─────────────────────────────────────────────── */
     const onPtrDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
       const isPen   = e.pointerType === "pen";
       const isMouse = e.pointerType === "mouse";
@@ -219,7 +161,7 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
       const isTouch = e.pointerType === "touch";
       if (isPen || isMouse || (isTouch && !showText)) {
         if (isTouch && !e.isPrimary) return;
-        if ((isPen || isMouse) && e.buttons === 0) return; // mouse/pen button not held
+        if ((isPen || isMouse) && e.buttons === 0) return;
         e.preventDefault();
         draw(getCanvasPoint(e.clientX, e.clientY, e.pressure > 0 ? e.pressure : 0.5));
       }
@@ -233,25 +175,26 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
     }, [stopDrawing, showText]);
 
     /* ── Theme ───────────────────────────────────────────────── */
-    const bg      = isDark ? "#12122a" : "#fefdf8";
-    const divider = isDark ? "#1e1e38" : "#e8e3d5";
+    const bg = isDark ? "#12122a" : "#fefdf8";
+
+    const isLastPage = surahRange ? currentPage >= surahRange.end : false;
+    const isFirstPage = surahRange ? currentPage <= surahRange.start : false;
 
     return (
       <div
         ref={outerRef}
         style={{ position: "relative", width: "100%", height: "100%", background: bg, overflow: "hidden" }}
       >
-        {/* ── 3-slot native-scroll container ───────────────── */}
+        {/* ── Scrollable content ────────────────────────────── */}
         <div
           ref={scrollRef}
           style={{
             position: "absolute", inset: 0,
             overflowY: "auto",
             overflowX: "hidden",
-            scrollSnapType: "y mandatory",
             WebkitOverflowScrolling: "touch",
-            scrollbarWidth: "none",
-            // Receives ALL pointer events (canvas is pointer-events:none above)
+            scrollbarWidth: "thin",
+            scrollbarColor: isDark ? "#2a2a4e transparent" : "#d8d3c0 transparent",
             touchAction: showText ? "pan-y" : "none",
           } as React.CSSProperties}
           onScroll={onScroll}
@@ -261,41 +204,22 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
           onPointerLeave={onPtrUp}
           onPointerCancel={onPtrUp}
         >
-          {slotH > 0 && [-1, 0, 1].map((offset) => {
-            const page = currentPage + offset;
-            /* Only show content if page is within global bounds AND surah range */
-            const inRange = page >= 1 && page <= TOTAL_PAGES &&
-              (!surahRange || (page >= surahRange.start && page <= surahRange.end));
-            return (
-              <div
-                key={offset}
-                style={{
-                  height:          slotH,
-                  flexShrink:      0,
-                  scrollSnapAlign: "start",
-                  overflow:        "hidden",
-                  borderBottom: offset < 1 ? `3px solid ${divider}` : undefined,
-                }}
-              >
-                {inRange ? (
-                  <PageContent
-                    page={page}
-                    verses={getVerses(page)}
-                    chapterMap={chapterMap}
-                    isDark={isDark}
-                    showText={showText}
-                    containerH={slotH}
-                    selectedChapterId={selectedChapterId}
-                  />
-                ) : (
-                  <div style={{ height: "100%", background: bg }} />
-                )}
-              </div>
-            );
-          })}
+          <PageContent
+            page={currentPage}
+            verses={getVerses(currentPage)}
+            chapterMap={chapterMap}
+            isDark={isDark}
+            showText={showText}
+            selectedChapterId={selectedChapterId}
+            isLastPage={isLastPage}
+            isFirstPage={isFirstPage}
+            surahRange={surahRange}
+            onNextPage={() => onPageChange(currentPage + 1)}
+            onPrevPage={() => onPageChange(currentPage - 1)}
+          />
         </div>
 
-        {/* ── Canvas — pointer-events:none so scroll passes through ─ */}
+        {/* ── Canvas overlay (pointer-events:none) ──────────── */}
         <canvas
           ref={canvasRef}
           style={{
@@ -309,7 +233,6 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
           }}
         />
 
-        {/* Hidden ref for useCanvas compat */}
         <div ref={dummyRef} style={{ display: "none" }} />
       </div>
     );
@@ -317,7 +240,7 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
 );
 
 /* ════════════════════════════════════════════════════════════
-   Page content (one Mushaf page, dynamically sized to fit)
+   Page content — natural scrollable height, quran.com style
    ════════════════════════════════════════════════════════════ */
 interface PageContentProps {
   page:              number;
@@ -325,28 +248,27 @@ interface PageContentProps {
   chapterMap:        Map<number, Chapter>;
   isDark:            boolean;
   showText:          boolean;
-  containerH:        number;
   selectedChapterId: number | null;
+  isLastPage:        boolean;
+  isFirstPage:       boolean;
+  surahRange:        SurahRange | null;
+  onNextPage:        () => void;
+  onPrevPage:        () => void;
 }
 
-function PageContent({ page, verses, chapterMap, isDark, showText, containerH, selectedChapterId }: PageContentProps) {
-  /* Filter to only the selected surah's verses so short surahs fill their
-     own full-viewport page even when they share a mushaf page with others. */
+function PageContent({
+  page, verses, chapterMap, isDark, showText,
+  selectedChapterId, isLastPage, isFirstPage,
+  surahRange, onNextPage, onPrevPage,
+}: PageContentProps) {
+
+  /* Filter to selected surah only */
   const filteredVerses = useMemo(
     () => selectedChapterId != null
       ? verses.filter(v => v.chapter_id === selectedChapterId)
       : verses,
     [verses, selectedChapterId],
   );
-  const pageRef  = useRef<HTMLDivElement>(null);
-  const [fontSize, setFontSize] = useState(34);
-
-  const textColor    = isDark ? "rgba(220,210,185,0.95)" : "#111827";
-  const accentColor  = isDark ? "#d4af37"                : "#1a3a6e";
-  const bannerBg     = isDark ? "rgba(212,175,55,0.05)"  : "rgba(255,255,255,0.97)";
-  const bannerBorder = isDark ? "#4a3a10"                : "#1a3a6e";
-  const pageNumColor = isDark ? "#4a4a6a"                : "#c0b8a8";
-  const fontFamily   = `"QPC_P${page}", "Amiri Quran", serif`;
 
   /* ── Lines with surah-break markers ───────────────────── */
   type PageLine = { lineNumber: number; words: Word[]; newChapter?: Chapter };
@@ -375,227 +297,292 @@ function PageContent({ page, verses, chapterMap, isDark, showText, containerH, s
       prevChId = chapterId;
     }
     return result;
-  }, [verses, chapterMap]);
+  }, [filteredVerses, chapterMap]);
 
-  /* ── Font size: fit all lines into available height ───── */
-  const computeFontSize = useCallback(() => {
-    const el = pageRef.current;
-    if (!el || !pageLines.length) return;
-    const h = containerH; // use the exact pixel height
-    const w = el.clientWidth;
+  /* ── Selected chapter metadata ─────────────────────────── */
+  const chapter = selectedChapterId ? chapterMap.get(selectedChapterId) : undefined;
 
-    const banners      = pageLines.filter(pl => pl.newChapter);
-    const hasBismillah = banners.some(pl => pl.newChapter!.bismillah_pre && pl.newChapter!.id !== 9);
-    // Compact banner ≈ 2.4 line-slots; bismillah ≈ 1.3 extra
-    const bannerRows   = banners.length * 2.4 + (hasBismillah ? 1.3 : 0);
-    const totalRows    = pageLines.length + bannerRows + 1.2;
+  /* ── Theme ─────────────────────────────────────────────── */
+  const textColor    = isDark ? "rgba(220,210,185,0.95)" : "#1a1a2e";
+  const accentColor  = isDark ? "#d4af37"                : "#1a3a6e";
+  const mutedColor   = isDark ? "#6a6a9a"                : "#6b7280";
+  const dividerColor = isDark ? "#2a2a4a"                : "#e5e1d5";
+  const bgCard       = isDark ? "rgba(255,255,255,0.03)" : "rgba(26,58,110,0.04)";
+  const fontFamily   = `"QPC_P${page}", "Amiri Quran", serif`;
 
-    const padV  = h * 0.045;
-    const avail = h - padV * 2;
-    let   fs    = avail / (totalRows * 1.57);
-
-    const maxByWidth = (w * 0.94) / 15;
-    fs = Math.min(fs, maxByWidth, 64);
-    fs = Math.max(fs, 14);
-    setFontSize(Math.round(fs));
-  }, [pageLines, containerH]);
-
-  useEffect(() => { computeFontSize(); }, [computeFontSize]);
-
-  useEffect(() => {
-    const el = pageRef.current;
-    if (!el) return;
-    const ro = new ResizeObserver(computeFontSize);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [computeFontSize]);
+  const opacity = showText ? 1 : 0;
+  const transition = "opacity 0.2s ease";
 
   return (
     <div
-      ref={pageRef}
       style={{
-        width:         "100%",
-        height:        "100%",
+        minHeight:     "100%",
         display:       "flex",
         flexDirection: "column",
-        alignItems:    "center",
-        paddingTop:    "3.5%",
-        paddingBottom: "3%",
-        paddingLeft:   "3%",
-        paddingRight:  "3%",
-        opacity:       showText ? 1 : 0,
-        transition:    "opacity 0.2s ease",
+        boxSizing:     "border-box",
+        padding:       "0 0 48px",
         userSelect:    "none",
         pointerEvents: "none",
-        boxSizing:     "border-box",
-        overflow:      "hidden",
       }}
     >
-      {!filteredVerses.length ? (
-        /* Loading state */
-        <div style={{ display: "flex", flex: 1, justifyContent: "center", alignItems: "center" }}>
+      {/* ── Surah Header (quran.com inspired) ───────────── */}
+      {chapter && isFirstPage && (
+        <div
+          style={{
+            display:       "flex",
+            alignItems:    "center",
+            gap:           "1.5rem",
+            padding:       "2.5rem 5% 2rem",
+            borderBottom:  `1px solid ${dividerColor}`,
+            marginBottom:  "0.5rem",
+            opacity,
+            transition,
+          }}
+        >
+          {/* Large Arabic calligraphic name */}
           <div style={{
-            width: 24, height: 24, borderRadius: "50%",
-            border: `2px solid ${accentColor}`,
-            borderTopColor: "transparent",
-            animation: "spin 0.9s linear infinite",
-            opacity: 0.35,
-          }} />
-        </div>
-      ) : (
-        /* Lines */
-        <div style={{
-          flex: 1, display: "flex", flexDirection: "column",
-          width: "100%", maxWidth: 960, margin: "0 auto",
-          justifyContent: "center",
-        }}>
-          {pageLines.map((pl, i) => (
-            <div key={pl.lineNumber}>
-              {pl.newChapter && (
-                <SurahBanner
-                  chapter={pl.newChapter}
-                  isDark={isDark}
-                  bannerBg={bannerBg}
-                  bannerBorder={bannerBorder}
-                  accentColor={accentColor}
-                  isFirst={i === 0}
-                  fontSize={fontSize}
-                />
-              )}
-              <div
-                style={{
-                  fontFamily,
-                  fontSize,
-                  lineHeight:   1.57,
-                  color:        textColor,
-                  textAlign:    "center",
-                  direction:    "rtl",
-                  unicodeBidi:  "bidi-override",
-                }}
-              >
-                {pl.words.map((w, wi) => (
-                  <span
-                    key={w.id}
-                    style={{
-                      color: w.char_type_name === "end" ? accentColor : textColor,
-                      marginInlineStart: wi > 0 ? "0.03em" : 0,
-                    }}
-                  >
-                    {w.code_v2}
-                  </span>
-                ))}
-              </div>
+            fontFamily:  '"Amiri Quran", "Amiri", serif',
+            fontSize:    "clamp(52px, 8vw, 96px)",
+            color:       accentColor,
+            lineHeight:  1,
+            direction:   "rtl",
+            flexShrink:  0,
+          }}>
+            {chapter.name_arabic}
+          </div>
+
+          {/* Divider */}
+          <div style={{ width: 1, alignSelf: "stretch", background: dividerColor, flexShrink: 0 }} />
+
+          {/* Info column */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.15rem" }}>
+            <div style={{
+              fontSize:   "clamp(18px, 2.2vw, 26px)",
+              fontWeight: 700,
+              color:      textColor,
+              letterSpacing: "-0.01em",
+            }}>
+              {chapter.id}. {chapter.name_simple}
             </div>
-          ))}
+            <div style={{
+              fontSize:  "clamp(13px, 1.6vw, 18px)",
+              color:     mutedColor,
+              fontWeight: 400,
+            }}>
+              {chapter.translated_name.name}
+            </div>
+            <div style={{
+              marginTop:    "0.3rem",
+              fontSize:     "clamp(11px, 1.2vw, 14px)",
+              color:        mutedColor,
+              opacity:      0.7,
+              letterSpacing: "0.06em",
+              textTransform: "uppercase",
+              fontWeight:   500,
+            }}>
+              {chapter.revelation_place === "makkah" ? "Makki" : "Madani"} · {chapter.verses_count} Ayahs
+            </div>
+          </div>
         </div>
       )}
 
-      {/* Page number */}
+      {/* ── Bismillah (when surah has bismillah and first page) */}
+      {chapter && isFirstPage && chapter.bismillah_pre && chapter.id !== 9 && (
+        <div style={{
+          fontFamily:  '"Amiri Quran", "Amiri", serif',
+          fontSize:    "clamp(22px, 3.2vw, 36px)",
+          color:       accentColor,
+          textAlign:   "center",
+          direction:   "rtl",
+          lineHeight:  2,
+          padding:     "1rem 5% 0.5rem",
+          opacity:     opacity * 0.9,
+          transition,
+        }}>
+          بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ
+        </div>
+      )}
+
+      {/* ── Verse lines ─────────────────────────────────── */}
       <div style={{
-        flexShrink:  0,
-        textAlign:   "center",
-        fontFamily:  "'Amiri', serif",
-        fontSize:    Math.max(10, fontSize * 0.29),
-        color:       pageNumColor,
-        letterSpacing: "0.05em",
-        paddingTop:  "0.8em",
-        opacity:     showText ? 1 : 0,
+        flex:    1,
+        padding: "2rem 5%",
+        opacity,
+        transition,
       }}>
-        ━ {page} ━
+        {!filteredVerses.length ? (
+          <div style={{ display: "flex", justifyContent: "center", paddingTop: "4rem" }}>
+            <div style={{
+              width: 24, height: 24, borderRadius: "50%",
+              border: `2px solid ${accentColor}`,
+              borderTopColor: "transparent",
+              animation: "spin 0.9s linear infinite",
+              opacity: 0.4,
+            }} />
+          </div>
+        ) : (
+          <div style={{
+            display:       "flex",
+            flexDirection: "column",
+            maxWidth:      960,
+            margin:        "0 auto",
+          }}>
+            {pageLines.map((pl) => (
+              <div key={pl.lineNumber}>
+                {/* Inline surah banner (for mid-page surah boundaries, not first page) */}
+                {pl.newChapter && !isFirstPage && (
+                  <MidPageBanner
+                    chapter={pl.newChapter}
+                    isDark={isDark}
+                    accentColor={accentColor}
+                    mutedColor={mutedColor}
+                    dividerColor={dividerColor}
+                  />
+                )}
+                <div style={{
+                  fontFamily,
+                  fontSize:   "clamp(24px, 3.6vw, 38px)",
+                  lineHeight: 2,
+                  color:      textColor,
+                  textAlign:  "center",
+                  direction:  "rtl",
+                  unicodeBidi: "bidi-override",
+                }}>
+                  {pl.words.map((w, wi) => (
+                    <span
+                      key={w.id}
+                      style={{
+                        color: w.char_type_name === "end" ? accentColor : textColor,
+                        marginInlineStart: wi > 0 ? "0.03em" : 0,
+                      }}
+                    >
+                      {w.code_v2}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ── Page number ─────────────────────────────────── */}
+      <div style={{
+        textAlign:     "center",
+        fontFamily:    "'Amiri', serif",
+        fontSize:      14,
+        color:         mutedColor,
+        letterSpacing: "0.05em",
+        paddingBottom: "1.5rem",
+        opacity:       showText ? 0.6 : 0,
+        transition,
+      }}>
+        {page}
+      </div>
+
+      {/* ── Page divider ────────────────────────────────── */}
+      <div style={{ height: 1, background: dividerColor, margin: "0 5%" }} />
+
+      {/* ── Footer: End of chapter / continue / prev page ─ */}
+      <div style={{
+        display:        "flex",
+        justifyContent: "center",
+        alignItems:     "center",
+        gap:            "2rem",
+        padding:        "1.5rem 5%",
+        opacity,
+        transition,
+      }}>
+        {isLastPage ? (
+          <span style={{
+            fontFamily:    "'Amiri', serif",
+            fontSize:      15,
+            color:         mutedColor,
+            letterSpacing: "0.04em",
+            fontStyle:     "italic",
+          }}>
+            End of Surah
+          </span>
+        ) : (
+          <>
+            <span style={{
+              fontFamily:    "'Amiri', serif",
+              fontSize:      15,
+              color:         mutedColor,
+              letterSpacing: "0.04em",
+            }}>
+              Page {page} of {surahRange?.end}
+            </span>
+            <button
+              onClick={(e) => { e.stopPropagation(); onNextPage(); }}
+              style={{
+                pointerEvents: "all",
+                background:    bgCard,
+                border:        `1px solid ${dividerColor}`,
+                borderRadius:  6,
+                padding:       "0.4rem 1rem",
+                cursor:        "pointer",
+                color:         accentColor,
+                fontSize:      14,
+                fontWeight:    600,
+                letterSpacing: "0.03em",
+              }}
+            >
+              Continue →
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
 }
 
-/* ════════════════════════════════════════════════════════════
-   Surah banner — compact, no ornaments, max-width centered
-   ════════════════════════════════════════════════════════════ */
-function SurahBanner({
-  chapter, isDark, bannerBg, bannerBorder, accentColor, isFirst, fontSize,
-}: {
-  chapter: Chapter; isDark: boolean; bannerBg: string;
-  bannerBorder: string; accentColor: string; isFirst: boolean; fontSize: number;
+/* ── Mid-page surah banner (compact, no large Arabic name) ── */
+function MidPageBanner({ chapter, isDark, accentColor, mutedColor, dividerColor }: {
+  chapter: Chapter; isDark: boolean; accentColor: string; mutedColor: string; dividerColor: string;
 }) {
-  const subtitleColor = isDark ? "#9090b0" : "#6b7280";
-  const shadowColor   = isDark ? "rgba(0,0,0,0.35)" : "rgba(26,58,110,0.07)";
-
   return (
     <div style={{
-      width:   "100%",
-      maxWidth: 800,
-      margin:  `${isFirst ? 0 : fontSize * 0.50}px auto ${fontSize * 0.28}px`,
+      margin:     "1.5rem 0 0.75rem",
+      padding:    "0.75rem 1.25rem",
+      background: isDark ? "rgba(255,255,255,0.03)" : "rgba(26,58,110,0.04)",
+      borderLeft: `3px solid ${accentColor}`,
+      borderRadius: "0 6px 6px 0",
     }}>
-      {/* ── Top rule ─── */}
       <div style={{
-        height:       1,
-        background:   `linear-gradient(to right, transparent, ${bannerBorder}70, transparent)`,
-        marginBottom: fontSize * 0.13,
-      }} />
-
-      {/* ── Banner box ── */}
-      <div style={{
-        background:    bannerBg,
-        border:        `1px solid ${bannerBorder}40`,
-        borderRadius:  6,
-        paddingTop:    fontSize * 0.16,
-        paddingBottom: fontSize * 0.12,
-        paddingLeft:   fontSize * 0.5,
-        paddingRight:  fontSize * 0.5,
-        boxShadow:     `0 1px 6px ${shadowColor}`,
-        display:        "flex",
-        flexDirection:  "column",
-        alignItems:     "center",
-        textAlign:      "center",
+        fontFamily:  '"Amiri Quran", "Amiri", serif',
+        fontSize:    28,
+        color:       accentColor,
+        direction:   "rtl",
+        lineHeight:  1.3,
       }}>
-        {/* Arabic surah name — lineHeight 2.2 puts ample half-leading above harakat */}
-        <div style={{
-          fontFamily:    '"Amiri Quran", "Amiri", serif',
-          fontSize:      fontSize * 1.05,
-          color:         accentColor,
-          fontWeight:    "bold",
-          lineHeight:    1.35,
-          direction:     "rtl",
-          textAlign:     "center",
-        }}>
-          سُورَةُ {chapter.name_arabic}
-        </div>
-
-        {/* Subtitle */}
-        <div style={{
-          fontSize:      Math.max(10, fontSize * 0.22),
-          color:         subtitleColor,
-          marginTop:     fontSize * 0.05,
-          letterSpacing: "0.07em",
-          fontWeight:    600,
-          textTransform: "uppercase",
-        }}>
-          {chapter.name_simple} · {chapter.revelation_place === "makkah" ? "Makki" : "Madani"} · {chapter.verses_count} Ayahs
-        </div>
+        سُورَةُ {chapter.name_arabic}
       </div>
-
-      {/* ── Bottom rule ── */}
       <div style={{
-        height:    1,
-        background: `linear-gradient(to right, transparent, ${bannerBorder}70, transparent)`,
-        marginTop: fontSize * 0.13,
-      }} />
-
-      {/* ── Bismillah ── */}
+        fontSize:  12,
+        color:     mutedColor,
+        marginTop: "0.2rem",
+        letterSpacing: "0.06em",
+        textTransform: "uppercase",
+        fontWeight: 500,
+      }}>
+        {chapter.id}. {chapter.name_simple} · {chapter.revelation_place === "makkah" ? "Makki" : "Madani"}
+      </div>
       {chapter.bismillah_pre && chapter.id !== 9 && (
         <div style={{
-          fontFamily:   '"Amiri Quran", "Amiri", serif',
-          fontSize:     fontSize * 0.88,
-          color:        accentColor,
-          textAlign:    "center",
-          direction:    "rtl",
-          lineHeight:   1.65,
-          marginTop:    fontSize * 0.10,
-          marginBottom: fontSize * 0.04,
-          opacity:      0.88,
+          fontFamily:  '"Amiri Quran", "Amiri", serif',
+          fontSize:    22,
+          color:       accentColor,
+          direction:   "rtl",
+          textAlign:   "right",
+          marginTop:   "0.5rem",
+          opacity:     0.85,
         }}>
           بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ
         </div>
       )}
+      {/* divider */}
+      <div style={{ height: 1, background: dividerColor, marginTop: "0.75rem" }} />
     </div>
   );
 }
