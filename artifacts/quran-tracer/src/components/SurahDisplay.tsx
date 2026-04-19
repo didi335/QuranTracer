@@ -145,6 +145,8 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
 
     /* ── Drawing ─────────────────────────────────────────────── */
     const onPtrDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+      /* Let buttons and interactive elements handle their own clicks */
+      if ((e.target as HTMLElement).closest("button, a, input, select")) return;
       const isPen   = e.pointerType === "pen";
       const isMouse = e.pointerType === "mouse";
       const isTouch = e.pointerType === "touch";
