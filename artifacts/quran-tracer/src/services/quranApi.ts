@@ -94,6 +94,50 @@ export async function fetchVersesByPage(pageNumber: number): Promise<Verse[]> {
   return verses;
 }
 
+/* ── Audio API (Quran Foundation Content API) ───────────────── */
+export interface ChapterAudio {
+  chapterId:  number;
+  audioUrl:   string;
+  reciterId:  number;
+  reciterName: string;
+}
+
+const RECITERS: Record<number, string> = {
+  2:  "Abdul Basit (Murattal)",
+  3:  "Abdur-Rahman as-Sudais",
+  4:  "Abu Bakr al-Shatri",
+  7:  "Mishari Rashid al-Afasy",
+  12: "Mahmoud Khalil Al-Husary",
+};
+
+const _audioCache = new Map<string, ChapterAudio>();
+
+export const AVAILABLE_RECITERS = Object.entries(RECITERS).map(
+  ([id, name]) => ({ id: Number(id), name })
+);
+
+export async function fetchChapterAudio(
+  chapterId: number,
+  reciterId: number = 7,
+): Promise<ChapterAudio> {
+  const key = `${reciterId}:${chapterId}`;
+  if (_audioCache.has(key)) return _audioCache.get(key)!;
+
+  const res = await fetch(
+    `${BASE_URL}/chapter_recitations/${reciterId}/${chapterId}`
+  );
+  if (!res.ok) throw new Error(`Audio fetch failed: ${res.status}`);
+  const data = await res.json();
+  const result: ChapterAudio = {
+    chapterId,
+    audioUrl:    data.audio_file.audio_url as string,
+    reciterId,
+    reciterName: RECITERS[reciterId] ?? "Unknown",
+  };
+  _audioCache.set(key, result);
+  return result;
+}
+
 export async function fetchChapterFirstPage(chapterId: number): Promise<number> {
   if (_chapterFirstPage.has(chapterId)) return _chapterFirstPage.get(chapterId)!;
 

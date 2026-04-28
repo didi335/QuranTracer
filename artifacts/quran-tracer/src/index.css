@@ -234,3 +234,8 @@
   from { opacity: 1; }
   to   { opacity: 0; }
 }
+
+@keyframes audioBar {
+  from { transform: scaleY(0.3); }
+  to   { transform: scaleY(1); }
+}
