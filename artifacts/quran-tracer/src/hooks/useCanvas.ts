@@ -190,15 +190,7 @@ export function useCanvas(penSettings: PenSettings, containerRef: RefObject<HTML
     [],
   );
 
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const preventScroll = (e: TouchEvent) => {
-      if (isDrawing.current) e.preventDefault();
-    };
-    canvas.addEventListener("touchmove", preventScroll, { passive: false });
-    return () => canvas.removeEventListener("touchmove", preventScroll);
-  }, []);
+  /* touchmove prevention is handled in SurahDisplay on the scroll container */
 
   return {
     canvasRef, startDrawing, draw, stopDrawing,

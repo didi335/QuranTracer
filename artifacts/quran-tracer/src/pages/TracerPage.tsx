@@ -16,6 +16,7 @@ type LeftTab = "surahs" | "bookmarks";
 export default function TracerPage() {
   const [isDark,      setIsDark]      = useState(false);
   const [showText,    setShowText]    = useState(true);
+  const [drawMode,    setDrawMode]    = useState(false);
   const [leftOpen,    setLeftOpen]    = useState(false);
   const [leftTab,     setLeftTab]     = useState<LeftTab>("surahs");
   const [rightOpen,   setRightOpen]   = useState(false);
@@ -168,6 +169,7 @@ export default function TracerPage() {
             getVerses={quran.getVerses}
             currentPage={quran.currentPage}
             showText={showText}
+            drawMode={drawMode}
             penSettings={penSettings}
             isDark={isDark}
             onPageChange={quran.goToPage}
@@ -186,6 +188,21 @@ export default function TracerPage() {
             backdropFilter: "blur(8px)", zIndex: 15,
           }}
         >
+          {/* Draw mode toggle — finger draw vs scroll */}
+          <button
+            onClick={() => setDrawMode(v => !v)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
+            title={drawMode ? "Draw mode ON — tap to allow finger scroll" : "Draw mode OFF — tap to let finger draw"}
+            style={{ background: drawMode ? accent : "transparent", color: drawMode ? "#fff" : iconColor }}
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536M9 13l6.5-6.5a2 2 0 012.828 2.828L11.828 15.828a2 2 0 01-1.414.586H8v-2.414A2 2 0 018.586 12.5z" />
+            </svg>
+            Draw
+          </button>
+
+          <Sep isDark={isDark} />
+
           {/* Show/hide text */}
           <button
             onClick={() => setShowText(v => !v)}

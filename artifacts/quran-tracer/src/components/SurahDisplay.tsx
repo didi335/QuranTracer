@@ -11,6 +11,7 @@ interface SurahDisplayProps {
   getVerses:         (page: number) => Verse[];
   currentPage:       number;
   showText:          boolean;
+  drawMode:          boolean;
   penSettings:       PenSettings;
   isDark:            boolean;
   onPageChange:      (page: number) => void;
@@ -39,7 +40,7 @@ function injectPageFont(page: number) {
 
 export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
   function SurahDisplay(
-    { chapters, getVerses, currentPage, showText, penSettings, isDark, onPageChange, onSelectSurah, surahRange, selectedChapterId },
+    { chapters, getVerses, currentPage, showText, drawMode, penSettings, isDark, onPageChange, onSelectSurah, surahRange, selectedChapterId },
     ref,
   ) {
     const outerRef  = useRef<HTMLDivElement>(null);
@@ -48,7 +49,7 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
 
     const {
       canvasRef, startDrawing, draw, stopDrawing,
-      undo, clear, clearHistory, downloadAsImage, getCanvasPoint,
+      undo, clear, clearHistory, downloadAsImage, getCanvasPoint, isDrawing,
     } = useCanvas(penSettings, dummyRef);
 
     /* ── All pages in current surah ──────────────────────────── */
@@ -177,37 +178,52 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
     }));
 
     /* ── Drawing ─────────────────────────────────────────────── */
+    /* Rules:
+       - pen (Apple Pencil / stylus): ALWAYS draws, regardless of drawMode
+       - mouse (click+drag):          ALWAYS draws
+       - touch (finger):              draws only when drawMode is ON; scrolls otherwise
+    */
+    const shouldDraw = useCallback((e: React.PointerEvent) => {
+      if ((e.target as HTMLElement).closest("button, a, input, select")) return false;
+      if (e.pointerType === "pen")   return true;
+      if (e.pointerType === "mouse") return true;
+      if (e.pointerType === "touch") return drawMode && e.isPrimary;
+      return false;
+    }, [drawMode]);
+
     const onPtrDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-      if ((e.target as HTMLElement).closest("button, a, input, select")) return;
-      const isPen   = e.pointerType === "pen";
-      const isMouse = e.pointerType === "mouse";
-      const isTouch = e.pointerType === "touch";
-      if (isPen || isMouse || (isTouch && !showText)) {
-        if (isTouch && !e.isPrimary) return;
-        e.preventDefault();
-        startDrawing(getCanvasPoint(e.clientX, e.clientY, e.pressure > 0 ? e.pressure : 0.5));
-        (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-      }
-    }, [startDrawing, getCanvasPoint, showText]);
+      if (!shouldDraw(e)) return;
+      e.preventDefault();
+      startDrawing(getCanvasPoint(e.clientX, e.clientY, e.pressure > 0 ? e.pressure : 0.5));
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    }, [shouldDraw, startDrawing, getCanvasPoint]);
 
     const onPtrMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-      const isPen   = e.pointerType === "pen";
-      const isMouse = e.pointerType === "mouse";
-      const isTouch = e.pointerType === "touch";
-      if (isPen || isMouse || (isTouch && !showText)) {
-        if (isTouch && !e.isPrimary) return;
-        if ((isPen || isMouse) && e.buttons === 0) return;
-        e.preventDefault();
-        draw(getCanvasPoint(e.clientX, e.clientY, e.pressure > 0 ? e.pressure : 0.5));
+      if (!isDrawing.current) return;
+      if (e.pointerType === "mouse" && e.buttons === 0) { stopDrawing(); return; }
+      e.preventDefault();
+      /* Use getCoalescedEvents for smoother Apple Pencil strokes when available */
+      const events = e.nativeEvent.getCoalescedEvents?.() ?? [e.nativeEvent];
+      for (const ev of events) {
+        draw(getCanvasPoint(ev.clientX, ev.clientY, ev.pressure > 0 ? ev.pressure : 0.5));
       }
-    }, [draw, getCanvasPoint, showText]);
+    }, [isDrawing, draw, stopDrawing, getCanvasPoint]);
 
-    const onPtrUp = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-      const isPen   = e.pointerType === "pen";
-      const isMouse = e.pointerType === "mouse";
-      const isTouch = e.pointerType === "touch";
-      if (isPen || isMouse || (isTouch && !showText)) stopDrawing();
-    }, [stopDrawing, showText]);
+    const onPtrUp = useCallback((_e: React.PointerEvent<HTMLDivElement>) => {
+      stopDrawing();
+    }, [stopDrawing]);
+
+    /* Prevent native scroll while pen is actively drawing (even with touch-action: pan-y).
+       This non-passive listener must be on the real DOM node. */
+    useEffect(() => {
+      const el = scrollRef.current;
+      if (!el) return;
+      const prevent = (e: TouchEvent) => {
+        if (isDrawing.current) e.preventDefault();
+      };
+      el.addEventListener("touchmove", prevent, { passive: false });
+      return () => el.removeEventListener("touchmove", prevent);
+    }, [isDrawing]);
 
     /* ── Keyboard navigation ─────────────────────────────────── */
     const onPageChangeRef = useRef(onPageChange);
@@ -267,7 +283,8 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
             overscrollBehavior: "contain",
             scrollbarWidth: "thin",
             scrollbarColor: isDark ? "#2a2a4e transparent" : "#d8d3c0 transparent",
-            touchAction: showText ? "pan-y" : "none",
+            /* pen always draws; finger scrolls unless drawMode is on */
+            touchAction: drawMode ? "none" : "pan-y",
           } as React.CSSProperties}
           onScroll={onScroll}
           onPointerDown={onPtrDown}

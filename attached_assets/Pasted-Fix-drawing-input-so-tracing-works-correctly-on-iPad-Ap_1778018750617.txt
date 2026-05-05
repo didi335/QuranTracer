@@ -1,0 +1,98 @@
+Fix drawing input so tracing works correctly on iPad (Apple Pencil + finger) while preserving normal scrolling on laptop/desktop.
+
+Current Problem:
+- On iPad, touching the screen always scrolls instead of drawing.
+- Apple Pencil does not draw.
+- Finger drawing does not work.
+- Laptop scrolling should still work normally.
+
+Fix input behavior:
+
+1. Apple Pencil Drawing (CRITICAL):
+- Detect Apple Pencil input using Pointer Events.
+- When Apple Pencil touches the screen:
+   - Start drawing immediately
+   - Disable scrolling while pencil is actively drawing
+   - Re-enable scrolling after drawing ends
+
+Use:
+- pointerType === "pen"
+
+2. Finger Drawing on iPad:
+- Finger should also be able to draw when drawing mode is enabled.
+
+Behavior:
+- If "Draw Mode" is ON:
+   - Finger touch = draw
+   - Disable scrolling during drawing
+
+- If "Draw Mode" is OFF:
+   - Finger touch = normal scrolling
+
+3. Add Draw Mode Toggle:
+Create a visible toggle/button:
+
+Modes:
+- Draw Mode ON → finger draws
+- Draw Mode OFF → finger scrolls
+
+Apple Pencil should ALWAYS draw regardless of toggle.
+
+4. Preserve Laptop/Desktop Scrolling:
+On laptop:
+- Trackpad scrolling must work
+- Mouse wheel scrolling must work
+- Keyboard arrows must work
+- Spacebar scrolling must work
+
+Mouse behavior:
+- Click + drag on canvas = draw
+- Normal scrolling still works
+
+5. Fix Canvas Event Handling:
+Use:
+- pointerdown
+- pointermove
+- pointerup
+- pointercancel
+
+Ensure canvas captures drawing events properly.
+
+6. Prevent Scroll Conflict:
+Only disable scrolling when actively drawing.
+
+DO NOT:
+- Permanently disable scrolling
+- Block normal page navigation
+
+7. Touch Settings:
+Apply:
+- touch-action: none;
+
+ONLY while actively drawing.
+Otherwise allow:
+- touch-action: auto;
+
+8. Apple Pencil Optimization:
+- Low latency drawing
+- No stroke gaps
+- Smooth continuous lines
+
+9. Testing Requirements:
+Confirm all of these work:
+✅ Apple Pencil drawing  
+✅ Finger drawing (when draw mode enabled)  
+✅ Finger scrolling (when draw mode disabled)  
+✅ Laptop trackpad scrolling  
+✅ Mouse wheel scrolling  
+✅ Keyboard scrolling  
+
+Important:
+Do not break tracing while fixing scrolling.
+Do not break scrolling while fixing tracing.
+
+Output:
+- Fix Apple Pencil support
+- Fix finger drawing
+- Keep desktop scrolling functional
+- Provide updated working code
