@@ -14,9 +14,10 @@ const PANEL_WIDTH = 288;
 type LeftTab = "surahs" | "bookmarks";
 
 export default function TracerPage() {
-  const [isDark,      setIsDark]      = useState(false);
-  const [showText,    setShowText]    = useState(true);
-  const [leftOpen,    setLeftOpen]    = useState(false);
+  const [isDark,           setIsDark]           = useState(false);
+  const [showText,         setShowText]         = useState(true);
+  const [showAudioPanel,   setShowAudioPanel]   = useState(false);
+  const [leftOpen,         setLeftOpen]         = useState(false);
   const [leftTab,     setLeftTab]     = useState<LeftTab>("surahs");
   const [rightOpen,   setRightOpen]   = useState(false);
   const [penSettings, setPenSettings] = useState<PenSettings>({
@@ -40,6 +41,12 @@ export default function TracerPage() {
 
   /* The chapter to play audio for */
   const audioChapterId = quran.selectedChapterId ?? currentChapterForNav?.id ?? null;
+
+  /* Auto-show player panel when audio becomes active */
+  useEffect(() => {
+    const { state } = audio.status;
+    if (state === "playing" || state === "loading") setShowAudioPanel(true);
+  }, [audio.status.state]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* Auto-switch audio when the surah changes and audio is active */
   const prevAudioChapterRef = useRef<number | null>(null);
@@ -245,6 +252,15 @@ export default function TracerPage() {
 
           <Sep isDark={isDark} />
 
+          {/* Audio panel toggle */}
+          <ActionBtn
+            onClick={() => setShowAudioPanel(v => !v)}
+            title={showAudioPanel ? "Hide audio player" : "Show audio player"}
+            color={showAudioPanel ? accent : iconColor}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+          </ActionBtn>
+
           {/* Audio play/pause */}
           <ActionBtn
             onClick={handleAudioToggle}
@@ -283,7 +299,7 @@ export default function TracerPage() {
         </div>
 
         {/* ── Floating Audio Player ── */}
-        {(audio.status.state === "playing" || audio.status.state === "paused") && (
+        {showAudioPanel && (
           <div
             className="absolute left-1/2 -translate-x-1/2 pointer-events-auto"
             style={{ top: "4.2rem", zIndex: 15, minWidth: 340, maxWidth: 520 }}
