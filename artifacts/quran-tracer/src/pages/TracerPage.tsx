@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { SurahDisplay, SurahDisplayHandle } from "@/components/SurahDisplay";
 import { Toolbar } from "@/components/Toolbar";
 import { SurahNav } from "@/components/SurahNav";
