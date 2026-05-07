@@ -278,16 +278,6 @@ export default function TracerPage() {
 
           <Sep isDark={isDark} />
 
-          {/* Page indicator — read-only */}
-          <span
-            className="text-xs font-mono px-2"
-            style={{ color: iconColor, minWidth: 52, textAlign: "center" }}
-          >
-            {quran.loading ? "…" : `${quran.currentPage} / ${TOTAL_PAGES}`}
-          </span>
-
-          <Sep isDark={isDark} />
-
           {/* Dark mode */}
           <ActionBtn onClick={() => setIsDark(v => !v)} title={isDark ? "Light mode" : "Dark mode"} color={iconColor}>
             {isDark
