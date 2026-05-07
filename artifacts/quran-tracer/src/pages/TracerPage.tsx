@@ -252,9 +252,17 @@ export default function TracerPage() {
 
           <Sep isDark={isDark} />
 
-          {/* Audio play/pause — also reveals the player panel */}
+          {/* Audio player toggle */}
           <ActionBtn
-            onClick={() => { setShowAudioPanel(true); handleAudioToggle(); }}
+            onClick={() => setShowAudioPanel(v => !v)}
+            title={showAudioPanel ? "Hide audio player" : "Open audio player"}
+            color={showAudioPanel || audio.status.state === "playing" ? accent : iconColor}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+          </ActionBtn>
+          {/* Audio play/pause */}
+          <ActionBtn
+            onClick={handleAudioToggle}
             title={audio.status.state === "playing" ? "Pause recitation" : "Play recitation"}
             color={audio.status.state !== "idle" && audio.status.state !== "error" ? accent : iconColor}
             disabled={!audioChapterId || audio.status.state === "loading"}
@@ -343,6 +351,24 @@ export default function TracerPage() {
                     <option key={r.id} value={r.id}>{r.name}</option>
                   ))}
                 </select>
+                {/* Play / Pause inside panel */}
+                <button
+                  onClick={handleAudioToggle}
+                  title={audio.status.state === "playing" ? "Pause" : "Play"}
+                  disabled={!audioChapterId || audio.status.state === "loading"}
+                  className="p-1 rounded-full opacity-70 hover:opacity-100 transition-opacity disabled:opacity-30"
+                  style={{ color: accent }}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    {audio.status.state === "loading" ? (
+                      <circle cx="12" cy="12" r="9" strokeDasharray="4 2" strokeLinecap="round" style={{ animation: "spin 1s linear infinite", transformOrigin: "center" }} />
+                    ) : audio.status.state === "playing" ? (
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M10 9v6m4-6v6" />
+                    ) : (
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 3l14 9-14 9V3z" />
+                    )}
+                  </svg>
+                </button>
                 {/* Stop + close panel */}
                 <button
                   onClick={() => { audio.stop(); setShowAudioPanel(false); }}
