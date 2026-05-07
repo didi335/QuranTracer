@@ -41,6 +41,18 @@ export default function TracerPage() {
   /* The chapter to play audio for */
   const audioChapterId = quran.selectedChapterId ?? currentChapterForNav?.id ?? null;
 
+  /* Auto-switch audio when the surah changes and audio is active */
+  const prevAudioChapterRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (audioChapterId === null) return;
+    if (audioChapterId === prevAudioChapterRef.current) return;
+    prevAudioChapterRef.current = audioChapterId;
+    const { state } = audio.status;
+    if (state === "playing" || state === "loading" || state === "paused") {
+      audio.playChapter(audioChapterId);
+    }
+  }, [audioChapterId, audio]);
+
   const handleAudioToggle = useCallback(() => {
     const { state } = audio.status;
     if (state === "playing") {
