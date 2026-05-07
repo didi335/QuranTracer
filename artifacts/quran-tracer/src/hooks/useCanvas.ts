@@ -113,7 +113,20 @@ export function useCanvas(penSettings: PenSettings, containerRef: RefObject<HTML
       ctx.lineJoin     = "round";
       ctx.beginPath();
       ctx.moveTo(pts[0].x, pts[0].y);
-      for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+      if (pts.length === 1) {
+        ctx.lineTo(pts[0].x, pts[0].y);
+      } else if (pts.length === 2) {
+        ctx.lineTo(pts[1].x, pts[1].y);
+      } else {
+        /* Quadratic Bézier through midpoints — produces smooth curves */
+        for (let i = 1; i < pts.length - 1; i++) {
+          const mx = (pts[i].x + pts[i + 1].x) / 2;
+          const my = (pts[i].y + pts[i + 1].y) / 2;
+          ctx.quadraticCurveTo(pts[i].x, pts[i].y, mx, my);
+        }
+        const last = pts[pts.length - 1];
+        ctx.lineTo(last.x, last.y);
+      }
       ctx.stroke();
       ctx.restore();
 
