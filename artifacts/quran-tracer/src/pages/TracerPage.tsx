@@ -252,18 +252,9 @@ export default function TracerPage() {
 
           <Sep isDark={isDark} />
 
-          {/* Audio panel toggle */}
+          {/* Audio play/pause — also reveals the player panel */}
           <ActionBtn
-            onClick={() => setShowAudioPanel(v => !v)}
-            title={showAudioPanel ? "Hide audio player" : "Show audio player"}
-            color={showAudioPanel ? accent : iconColor}
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-          </ActionBtn>
-
-          {/* Audio play/pause */}
-          <ActionBtn
-            onClick={handleAudioToggle}
+            onClick={() => { setShowAudioPanel(true); handleAudioToggle(); }}
             title={audio.status.state === "playing" ? "Pause recitation" : "Play recitation"}
             color={audio.status.state !== "idle" && audio.status.state !== "error" ? accent : iconColor}
             disabled={!audioChapterId || audio.status.state === "loading"}
@@ -352,9 +343,9 @@ export default function TracerPage() {
                     <option key={r.id} value={r.id}>{r.name}</option>
                   ))}
                 </select>
-                {/* Stop */}
+                {/* Stop + close panel */}
                 <button
-                  onClick={audio.stop}
+                  onClick={() => { audio.stop(); setShowAudioPanel(false); }}
                   title="Stop"
                   className="p-1 rounded-full opacity-50 hover:opacity-100 transition-opacity"
                   style={{ color: iconColor }}
