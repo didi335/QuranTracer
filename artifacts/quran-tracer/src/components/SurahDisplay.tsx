@@ -43,9 +43,10 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
     { chapters, getVerses, currentPage, showText, drawMode, penSettings, isDark, onPageChange, onSelectSurah, surahRange, selectedChapterId },
     ref,
   ) {
-    const outerRef  = useRef<HTMLDivElement>(null);
-    const scrollRef = useRef<HTMLDivElement>(null);
-    const dummyRef  = useRef<HTMLDivElement>(null);
+    const outerRef      = useRef<HTMLDivElement>(null);
+    const scrollRef     = useRef<HTMLDivElement>(null);
+    const contentRef    = useRef<HTMLDivElement>(null);
+    const dummyRef      = useRef<HTMLDivElement>(null);
 
     const {
       canvasRef, startDrawing, draw, stopDrawing,
@@ -76,20 +77,36 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
     }, [chapters]);
 
     /* ── Canvas sizing ───────────────────────────────────────── */
+    /* Canvas lives inside the scroll container and covers the FULL
+       scrollable height so strokes stay anchored to the text. */
     const syncCanvas = useCallback(() => {
-      const canvas = canvasRef.current;
-      const outer  = outerRef.current;
-      if (!canvas || !outer) return;
+      const canvas   = canvasRef.current;
+      const scroll   = scrollRef.current;
+      const content  = contentRef.current;
+      if (!canvas || !scroll || !content) return;
       const dpr = window.devicePixelRatio || 1;
-      const w   = outer.clientWidth;
-      const h   = outer.clientHeight;
+      const w   = scroll.clientWidth;
+      const h   = content.scrollHeight || content.offsetHeight;
       if (!w || !h) return;
-      canvas.width        = w * dpr;
-      canvas.height       = h * dpr;
+      const newW = Math.round(w * dpr);
+      const newH = Math.round(h * dpr);
+      if (canvas.width === newW && canvas.height === newH) return; // no change — preserve drawing
+      canvas.width        = newW;
+      canvas.height       = newH;
       canvas.style.width  = `${w}px`;
       canvas.style.height = `${h}px`;
     }, [canvasRef]);
 
+    /* Re-sync whenever the content div resizes (pages/fonts loading in) */
+    useEffect(() => {
+      const el = contentRef.current;
+      if (!el) return;
+      const ro = new ResizeObserver(syncCanvas);
+      ro.observe(el);
+      return () => ro.disconnect();
+    }, [syncCanvas]);
+
+    /* Also re-sync on outer container width change */
     useEffect(() => {
       const el = outerRef.current;
       if (!el) return;
@@ -122,15 +139,9 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
     const scrollTriggeredRef = useRef(false);
     const scrollTimer        = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    /* Canvas visibility helpers */
-    const hideCanvas = () => { if (canvasRef.current) canvasRef.current.style.opacity = "0"; };
-    const showCanvas = () => { if (canvasRef.current) canvasRef.current.style.opacity = "1"; };
-
     const onScroll = useCallback(() => {
-      hideCanvas();
       if (scrollTimer.current) clearTimeout(scrollTimer.current);
       scrollTimer.current = setTimeout(() => {
-        showCanvas();
         const el = scrollRef.current;
         if (!el) return;
 
@@ -293,6 +304,18 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
           onPointerLeave={onPtrUp}
           onPointerCancel={onPtrUp}
         >
+          {/* ── Drawing canvas — anchored to content, scrolls with text ── */}
+          <canvas
+            ref={canvasRef}
+            style={{
+              position: "absolute", top: 0, left: 0,
+              zIndex: 10, pointerEvents: "none",
+            }}
+          />
+
+          {/* ── All scrollable content wrapped so we can measure its height ── */}
+          <div ref={contentRef}>
+
           {/* ── Surah header (once at the very top) ─────────── */}
           {chapter && (
             <div style={{ opacity, transition }}>
@@ -425,17 +448,9 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
               />
             ) : <div style={{ flex: 1 }} />}
           </div>
-        </div>
 
-        {/* ── Canvas overlay ────────────────────────────────── */}
-        <canvas
-          ref={canvasRef}
-          style={{
-            position: "absolute", top: 0, left: 0,
-            zIndex: 10, pointerEvents: "none",
-            willChange: "opacity", transition: "opacity 0.12s ease",
-          }}
-        />
+          </div>{/* end contentRef wrapper */}
+        </div>
 
         <div ref={dummyRef} style={{ display: "none" }} />
       </div>
