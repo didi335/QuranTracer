@@ -40,53 +40,6 @@ export function BookmarkPanel({
   return (
     <div className="flex flex-col gap-3">
 
-      {/* ── Quran.com sync strip ── */}
-      {hasOAuth && (
-        <div
-          className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs border"
-          style={{ borderColor: cardBorder, background: cardBg, color: textColor }}
-        >
-          {authLoading ? (
-            <span style={{ color: muted }}>Connecting…</span>
-          ) : loggedIn ? (
-            <>
-              <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} style={{ color: accent }}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
-              <span className="flex-1 truncate font-medium" style={{ color: accent }}>
-                {userName ?? "Quran.com"}
-              </span>
-              {syncState === "syncing" && (
-                <span style={{ color: muted }}>Syncing…</span>
-              )}
-              {syncState === "error" && (
-                <span style={{ color: syncColor }}>Sync error</span>
-              )}
-              <button
-                onClick={onLogout}
-                className="ml-auto underline opacity-60 hover:opacity-100"
-                style={{ color: mutedText }}
-              >
-                Sign out
-              </button>
-            </>
-          ) : (
-            <>
-              <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} style={{ color: muted }}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              <span className="flex-1" style={{ color: mutedText }}>Sync with Quran.com</span>
-              <button
-                onClick={onLogin}
-                className="font-semibold underline hover:opacity-80"
-                style={{ color: accent }}
-              >
-                Sign in
-              </button>
-            </>
-          )}
-        </div>
-      )}
 
       {/* Toggle bookmark for current page */}
       <button
