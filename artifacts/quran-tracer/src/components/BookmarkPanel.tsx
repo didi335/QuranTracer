@@ -1,20 +1,27 @@
 import { useState } from "react";
-import { Bookmark } from "@/hooks/useBookmarks";
+import { Bookmark, SyncState } from "@/hooks/useBookmarks";
 
 interface Props {
   bookmarks:    Bookmark[];
   currentPage:  number;
   isBookmarked: boolean;
   isDark:       boolean;
+  syncState:    SyncState;
+  loggedIn:     boolean;
+  authLoading:  boolean;
+  userName:     string | null;
   onToggle:     () => void;
   onGo:         (page: number) => void;
   onRemove:     (id: string) => void;
   onUpdateNote: (id: string, note: string) => void;
+  onLogin:      () => void;
+  onLogout:     () => void;
 }
 
 export function BookmarkPanel({
-  bookmarks, currentPage, isBookmarked, isDark,
-  onToggle, onGo, onRemove, onUpdateNote,
+  bookmarks, currentPage, isBookmarked, isDark, syncState,
+  loggedIn, authLoading, userName,
+  onToggle, onGo, onRemove, onUpdateNote, onLogin, onLogout,
 }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [noteInput, setNoteInput] = useState("");
@@ -26,9 +33,61 @@ export function BookmarkPanel({
   const textColor   = isDark ? "#ddd8e8" : "#1a1a2e";
   const mutedText   = isDark ? "#8080a0" : "#7f8c8d";
   const dangerColor = isDark ? "#ff7070" : "#c0392b";
+  const syncColor   = syncState === "error" ? dangerColor : muted;
+
+  const hasOAuth = !!(import.meta.env.VITE_QURAN_OAUTH_CLIENT_ID);
 
   return (
     <div className="flex flex-col gap-3">
+
+      {/* ── Quran.com sync strip ── */}
+      {hasOAuth && (
+        <div
+          className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs border"
+          style={{ borderColor: cardBorder, background: cardBg, color: textColor }}
+        >
+          {authLoading ? (
+            <span style={{ color: muted }}>Connecting…</span>
+          ) : loggedIn ? (
+            <>
+              <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} style={{ color: accent }}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              <span className="flex-1 truncate font-medium" style={{ color: accent }}>
+                {userName ?? "Quran.com"}
+              </span>
+              {syncState === "syncing" && (
+                <span style={{ color: muted }}>Syncing…</span>
+              )}
+              {syncState === "error" && (
+                <span style={{ color: syncColor }}>Sync error</span>
+              )}
+              <button
+                onClick={onLogout}
+                className="ml-auto underline opacity-60 hover:opacity-100"
+                style={{ color: mutedText }}
+              >
+                Sign out
+              </button>
+            </>
+          ) : (
+            <>
+              <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} style={{ color: muted }}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              <span className="flex-1" style={{ color: mutedText }}>Sync with Quran.com</span>
+              <button
+                onClick={onLogin}
+                className="font-semibold underline hover:opacity-80"
+                style={{ color: accent }}
+              >
+                Sign in
+              </button>
+            </>
+          )}
+        </div>
+      )}
+
       {/* Toggle bookmark for current page */}
       <button
         onClick={onToggle}
@@ -82,6 +141,11 @@ export function BookmarkPanel({
                     <span className="text-xs font-medium truncate" style={{ color: textColor }}>
                       {bm.label}
                     </span>
+                    {bm.remoteId !== null && (
+                      <svg className="w-3 h-3 flex-shrink-0 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} style={{ color: accent }}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                    )}
                   </div>
                   {bm.note && (
                     <p className="text-xs mt-0.5 truncate pl-0.5" style={{ color: mutedText }}>{bm.note}</p>
@@ -124,10 +188,7 @@ export function BookmarkPanel({
                     value={noteInput}
                     onChange={e => setNoteInput(e.target.value)}
                     onKeyDown={e => {
-                      if (e.key === "Enter") {
-                        onUpdateNote(bm.id, noteInput);
-                        setEditingId(null);
-                      }
+                      if (e.key === "Enter") { onUpdateNote(bm.id, noteInput); setEditingId(null); }
                       if (e.key === "Escape") setEditingId(null);
                     }}
                     placeholder="Add a note…"

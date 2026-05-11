@@ -7,6 +7,7 @@ import { PenSettings } from "@/hooks/useCanvas";
 import { useQuran } from "@/hooks/useQuran";
 import { useBookmarks } from "@/hooks/useBookmarks";
 import { useAudio, formatTime } from "@/hooks/useAudio";
+import { useAuth } from "@/hooks/useAuth";
 import { TOTAL_PAGES, AVAILABLE_RECITERS } from "@/services/quranApi";
 
 const PANEL_WIDTH = 288;
@@ -26,10 +27,11 @@ export default function TracerPage() {
 
   const displayRef = useRef<SurahDisplayHandle>(null);
   const quran      = useQuran();
+  const auth       = useAuth();
 
   const {
-    bookmarks, isBookmarked, toggleBookmark, removeBookmark, updateNote,
-  } = useBookmarks(quran.currentPage);
+    bookmarks, isBookmarked, toggleBookmark, removeBookmark, updateNote, syncState,
+  } = useBookmarks(quran.currentPage, auth.tokenSet?.access_token ?? null);
 
   const audio = useAudio();
 
@@ -165,10 +167,16 @@ export default function TracerPage() {
                 currentPage={quran.currentPage}
                 isBookmarked={isBookmarked}
                 isDark={isDark}
+                syncState={syncState}
+                loggedIn={auth.loggedIn}
+                authLoading={auth.loading}
+                userName={auth.tokenSet?.user?.name ?? auth.tokenSet?.user?.email ?? null}
                 onToggle={toggleBookmark}
                 onGo={(page) => { quran.goToPage(page); setLeftOpen(false); }}
                 onRemove={removeBookmark}
                 onUpdateNote={updateNote}
+                onLogin={auth.login}
+                onLogout={auth.logout}
               />
             )}
           </div>

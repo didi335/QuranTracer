@@ -138,6 +138,42 @@ export async function fetchChapterAudio(
   return result;
 }
 
+/* ── User API — Bookmarks (requires Bearer token) ───────────── */
+export interface QFBookmark {
+  id:         number;
+  key:        number;   // page number
+  mushaf:     number;   // 1 = Uthmani
+  created_at: string;
+}
+
+export async function fetchUserBookmarks(token: string): Promise<QFBookmark[]> {
+  const res = await fetch(`${BASE_URL}/bookmarks`, {
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+  });
+  if (!res.ok) throw new Error(`fetchUserBookmarks: ${res.status}`);
+  const data = await res.json();
+  return (data.bookmarks ?? []) as QFBookmark[];
+}
+
+export async function createUserBookmark(token: string, page: number): Promise<QFBookmark> {
+  const res = await fetch(`${BASE_URL}/bookmarks`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ key: page, mushaf: 1 }),
+  });
+  if (!res.ok) throw new Error(`createUserBookmark: ${res.status}`);
+  const data = await res.json();
+  return data.bookmark as QFBookmark;
+}
+
+export async function deleteUserBookmark(token: string, id: number): Promise<void> {
+  const res = await fetch(`${BASE_URL}/bookmarks/${id}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error(`deleteUserBookmark: ${res.status}`);
+}
+
 export async function fetchChapterFirstPage(chapterId: number): Promise<number> {
   if (_chapterFirstPage.has(chapterId)) return _chapterFirstPage.get(chapterId)!;
 
