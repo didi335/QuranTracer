@@ -80,7 +80,7 @@ export function useBookmarks(currentPage: number, accessToken: string | null) {
 
   const isBookmarked = bookmarks.some(b => b.page === currentPage);
 
-  const toggleBookmark = useCallback(async () => {
+  const toggleBookmark = useCallback(async (surahName?: string) => {
     const existing = bookmarks.find(b => b.page === currentPage);
     if (existing) {
       // Optimistic remove
@@ -94,7 +94,7 @@ export function useBookmarks(currentPage: number, accessToken: string | null) {
         id:       crypto.randomUUID?.() ?? `${Date.now()}`,
         remoteId: null,
         page:     currentPage,
-        label:    `Page ${currentPage}`,
+        label:    surahName ?? `Page ${currentPage}`,
         savedAt:  Date.now(),
       };
       save([localBm, ...bookmarks]);

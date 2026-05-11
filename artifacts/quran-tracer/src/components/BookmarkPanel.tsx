@@ -69,19 +69,16 @@ export function BookmarkPanel({
                 >
                   <div className="flex items-center gap-2">
                     <span
-                      className="text-xs font-bold px-1.5 py-0.5 rounded-md"
+                      className="text-xs font-bold px-1.5 py-0.5 rounded-md flex-shrink-0"
                       style={{ background: isDark ? "rgba(212,175,55,0.15)" : "rgba(26,58,110,0.1)", color: accent }}
                     >
-                      {bm.page}
+                      p.{bm.page}
                     </span>
-                    <span className="text-xs font-medium truncate" style={{ color: textColor }}>
-                      {bm.label}
-                    </span>
-                    {bm.remoteId !== null && (
-                      <svg className="w-3 h-3 flex-shrink-0 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} style={{ color: accent }}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                      </svg>
-                    )}
+                    <div className="min-w-0">
+                      <span className="text-xs font-semibold truncate block" style={{ color: textColor }}>
+                        {bm.label}
+                      </span>
+                    </div>
                   </div>
                   {bm.note && (
                     <p className="text-xs mt-0.5 truncate pl-0.5" style={{ color: mutedText }}>{bm.note}</p>

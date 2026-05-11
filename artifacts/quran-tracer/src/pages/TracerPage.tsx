@@ -171,7 +171,7 @@ export default function TracerPage() {
                 loggedIn={auth.loggedIn}
                 authLoading={auth.loading}
                 userName={auth.tokenSet?.user?.name ?? auth.tokenSet?.user?.email ?? null}
-                onToggle={toggleBookmark}
+                onToggle={() => toggleBookmark(currentChapterForNav?.name_simple)}
                 onGo={(page) => { quran.goToPage(page); setLeftOpen(false); }}
                 onRemove={removeBookmark}
                 onUpdateNote={updateNote}
