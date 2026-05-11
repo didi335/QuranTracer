@@ -41,23 +41,6 @@ export function BookmarkPanel({
     <div className="flex flex-col gap-3">
 
 
-      {/* Toggle bookmark for current page */}
-      <button
-        onClick={onToggle}
-        className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-90 active:scale-95"
-        style={{
-          background: isBookmarked
-            ? isDark ? "rgba(212,175,55,0.15)" : "rgba(26,58,110,0.09)"
-            : isDark ? "#1e1e38" : "#ede8d8",
-          border: `1.5px solid ${isBookmarked ? accent : cardBorder}`,
-          color: isBookmarked ? accent : mutedText,
-        }}
-      >
-        <svg className="w-4 h-4 flex-shrink-0" fill={isBookmarked ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M17 3H7a2 2 0 00-2 2v16l7-3 7 3V5a2 2 0 00-2-2z" />
-        </svg>
-        {isBookmarked ? "Bookmarked — tap to remove" : `Bookmark page ${currentPage}`}
-      </button>
 
       {/* List */}
       {bookmarks.length === 0 ? (
