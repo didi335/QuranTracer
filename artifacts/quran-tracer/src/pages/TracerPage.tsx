@@ -350,17 +350,6 @@ export default function TracerPage() {
                     )}
                   </svg>
                 </button>
-                {/* Stop + close panel */}
-                <button
-                  onClick={() => { audio.stop(); setShowAudioPanel(false); }}
-                  title="Stop"
-                  className="p-1 rounded-full opacity-50 hover:opacity-100 transition-opacity"
-                  style={{ color: iconColor }}
-                >
-                  <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
-                    <rect x="5" y="5" width="14" height="14" rx="2" />
-                  </svg>
-                </button>
               </div>
 
               {/* Progress row */}
