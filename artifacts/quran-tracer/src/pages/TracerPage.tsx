@@ -111,7 +111,6 @@ export default function TracerPage() {
             accent={accent}
             iconColor={iconColor}
             onClick={() => leftOpen && leftTab === "bookmarks" ? setLeftOpen(false) : openLeft("bookmarks")}
-            badge={bookmarks.length > 0 ? bookmarks.length : undefined}
             icon={
               <path strokeLinecap="round" strokeLinejoin="round" d="M17 3H7a2 2 0 00-2 2v16l7-3 7 3V5a2 2 0 00-2-2z" />
             }
@@ -247,7 +246,7 @@ export default function TracerPage() {
 
           {/* Bookmark */}
           <ActionBtn
-            onClick={() => toggleBookmark(currentChapterForNav?.name_simple)}
+            onClick={() => toggleBookmark(currentChapterForNav?.name_simple ?? undefined)}
             title={isBookmarked ? "Remove bookmark" : "Bookmark this page"}
             color={isBookmarked ? accent : iconColor}
           >
