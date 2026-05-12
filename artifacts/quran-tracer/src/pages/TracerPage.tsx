@@ -247,7 +247,7 @@ export default function TracerPage() {
 
           {/* Bookmark */}
           <ActionBtn
-            onClick={toggleBookmark}
+            onClick={() => toggleBookmark(currentChapterForNav?.name_simple)}
             title={isBookmarked ? "Remove bookmark" : "Bookmark this page"}
             color={isBookmarked ? accent : iconColor}
           >
