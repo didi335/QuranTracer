@@ -197,9 +197,11 @@ export default function TracerPage() {
           <ActionBtn onClick={() => displayRef.current?.undo()} title="Undo" color={iconColor}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
           </ActionBtn>
-          {/* Clear */}
-          <ActionBtn onClick={() => displayRef.current?.clear()} title="Clear canvas" color={isDark ? "#ff9999" : "#c0392b"}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          {/* Eraser */}
+          <ActionBtn onClick={() => displayRef.current?.clear()} title="Eraser" color={isDark ? "#ff9999" : "#c0392b"}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M7 21l-4.3-4.3a2 2 0 010-2.83l9.6-9.6a2 2 0 012.83 0l5.6 5.6a2 2 0 010 2.83L13 21" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M22 21H7" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 11l9 9" />
           </ActionBtn>
           {/* Save */}
           <ActionBtn onClick={() => displayRef.current?.download()} title="Save as image" color={isDark ? "#90ee90" : "#1b7a3e"}>
