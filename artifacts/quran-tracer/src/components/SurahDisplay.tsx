@@ -293,7 +293,7 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
             overscrollBehavior: "contain",
             scrollbarWidth: "thin",
             scrollbarColor: isDark ? "#2a2a4e transparent" : "#d8d3c0 transparent",
-            touchAction: "none",
+            touchAction: "pan-y",
           } as React.CSSProperties}
           onScroll={onScroll}
           onPointerDown={onPtrDown}
@@ -320,7 +320,7 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
               {/* Large calligraphic header */}
               <div style={{
                 display: "flex", alignItems: "center", gap: "1.5rem",
-                padding: "4.5rem 5% 2rem",
+                padding: "clamp(3.5rem, 5vw, 4.5rem) 5% 2rem",
                 borderBottom: `1px solid ${dividerColor}`,
                 marginBottom: "0.5rem",
               }}>

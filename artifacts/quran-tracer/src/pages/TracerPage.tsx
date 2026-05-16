@@ -58,7 +58,7 @@ export default function TracerPage() {
       {/* ── LEFT PANEL ── */}
       <div className="relative flex-shrink-0 flex" style={{ zIndex: 20 }}>
         <div
-          className={`flex flex-col items-center gap-4 py-4 border-r transition-all duration-200 ${stripBg} ${leftOpen ? "opacity-0 pointer-events-none w-0 overflow-hidden" : "opacity-100 w-12"}`}
+          className={`hidden sm:flex flex-col items-center gap-4 py-4 border-r transition-all duration-200 ${stripBg} ${leftOpen ? "opacity-0 pointer-events-none w-0 overflow-hidden" : "opacity-100 w-12"}`}
         >
           <StripBtn
             title="Surah Browser"
@@ -177,6 +177,32 @@ export default function TracerPage() {
             backdropFilter: "blur(8px)", zIndex: 15,
           }}
         >
+          {/* Mobile-only: Surah menu */}
+          <button
+            onClick={() => openLeft("surahs")}
+            title="Surahs"
+            className="sm:hidden p-1.5 rounded-full transition-all hover:opacity-70"
+            style={{ color: accent }}
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+            </svg>
+          </button>
+
+          {/* Mobile-only: Pen settings */}
+          <button
+            onClick={() => { setRightOpen(true); setLeftOpen(false); }}
+            title="Pen Settings"
+            className="sm:hidden p-1.5 rounded-full transition-all hover:opacity-70"
+            style={{ color: accent }}
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
+            </svg>
+          </button>
+
+          <span className="sm:hidden"><Sep isDark={isDark} /></span>
+
           {/* Show/hide text */}
           <button
             onClick={() => setShowText(v => !v)}
@@ -268,7 +294,7 @@ export default function TracerPage() {
         </div>
         {/* Slim strip */}
         <div
-          className={`flex flex-col items-center gap-4 py-4 border-l cursor-pointer transition-all duration-200 ${stripBg} ${rightOpen ? "opacity-0 pointer-events-none w-0 overflow-hidden" : "opacity-100 w-12"}`}
+          className={`hidden sm:flex flex-col items-center gap-4 py-4 border-l cursor-pointer transition-all duration-200 ${stripBg} ${rightOpen ? "opacity-0 pointer-events-none w-0 overflow-hidden" : "opacity-100 w-12"}`}
           onClick={() => { setRightOpen(true); setLeftOpen(false); }}
           title="Pen Settings"
         >

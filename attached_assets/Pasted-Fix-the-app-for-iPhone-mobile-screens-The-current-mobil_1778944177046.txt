@@ -1,0 +1,122 @@
+Fix the app for iPhone/mobile screens. The current mobile version is unusable because everything is squished, text is cut off, side panels take too much space, and tracing/scrolling does not work properly.
+
+Current Problems:
+- Quran text is squished
+- Arabic letters are being cut off
+- Side panels take too much screen space
+- Cannot trace properly
+- Cannot scroll properly
+- Mobile layout feels cramped and broken
+
+Fix all mobile responsiveness issues.
+
+1. Create a Dedicated Mobile Layout (CRITICAL):
+Do NOT reuse desktop/iPad layout on phones.
+
+For iPhone/mobile:
+- Hide permanent side panels
+- Use full-screen Quran reading/tracing area
+- Optimize specifically for small screens
+
+2. Replace Side Panels with Pop-Up Menus:
+Currently:
+- Surah list
+- Pen settings
+- Bookmarks
+
+These take too much space.
+
+Fix:
+- Turn them into floating buttons/icons
+
+Example:
+Top left:
+- Surah selector button
+
+Top right:
+- Pen settings button
+
+Bottom corner:
+- Bookmark button
+
+When tapped:
+- Open modal
+OR
+- Slide-out drawer
+
+Then close when finished.
+
+3. Fix Quran Text Size:
+- Increase readability on mobile
+- Prevent letters from being cut off
+
+Use:
+- Responsive Arabic font scaling
+- Proper line wrapping
+- Proper padding
+
+Example:
+font-size: clamp(20px, 5vw, 32px);
+
+4. Prevent Arabic Text Clipping:
+Fix:
+- Overflow issues
+- Container width issues
+- Broken RTL rendering
+
+Ensure:
+- Full Arabic letters always display properly
+
+5. Full Screen Tracing Area:
+The Quran text + tracing canvas should take most of the screen.
+
+Remove wasted spacing.
+
+6. Fix Mobile Scrolling:
+Enable:
+- Smooth vertical scrolling
+- Touch swipe scrolling
+
+Use:
+- overflow-y: auto
+- -webkit-overflow-scrolling: touch
+
+7. Fix Mobile Drawing:
+Finger tracing must work properly.
+
+Behavior:
+- Draw mode ON → finger draws
+- Draw mode OFF → finger scrolls
+
+Apple Pencil support should still work on compatible devices.
+
+8. Improve Mobile Header:
+Reduce header size on phones.
+Keep:
+- Compact Surah title
+- Compact page number
+
+Remove large empty spacing.
+
+9. Responsive Breakpoints:
+Desktop → full side panels  
+iPad → collapsible side panels  
+iPhone → floating buttons / modal menus
+
+10. Testing Requirements:
+Confirm app works on:
+- iPhone Safari
+- iPhone Chrome
+- iPad
+- Laptop/Desktop
+
+Important:
+The mobile version should feel clean and simple.
+Prioritize Quran readability and tracing space.
+
+Output:
+- Fix mobile responsiveness
+- Fix tracing on phones
+- Fix scrolling on phones
+- Replace sidebars with mobile-friendly UI
+- Provide updated working code
