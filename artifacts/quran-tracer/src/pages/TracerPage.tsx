@@ -199,9 +199,8 @@ export default function TracerPage() {
           </ActionBtn>
           {/* Eraser */}
           <ActionBtn onClick={() => displayRef.current?.clear()} title="Eraser" color={isDark ? "#ff9999" : "#c0392b"}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M7 21l-4.3-4.3a2 2 0 010-2.83l9.6-9.6a2 2 0 012.83 0l5.6 5.6a2 2 0 010 2.83L13 21" />
-            <path strokeLinecap="round" strokeLinejoin="round" d="M22 21H7" />
-            <path strokeLinecap="round" strokeLinejoin="round" d="M5 11l9 9" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 3.5a2.121 2.121 0 013 3L8 18l-5 1 1-5L16.5 3.5z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l4 4" />
           </ActionBtn>
           {/* Save */}
           <ActionBtn onClick={() => displayRef.current?.download()} title="Save as image" color={isDark ? "#90ee90" : "#1b7a3e"}>
