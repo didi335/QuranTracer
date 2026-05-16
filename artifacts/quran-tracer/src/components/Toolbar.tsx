@@ -67,8 +67,9 @@ export function Toolbar({
               color:      penSettings.mode === "eraser" ? "#fff" : (isDark ? "#c0c0e0" : "#1a1a2e"),
             }}
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-1 12H6L5 7m5 4v6m4-6v6M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2M4 7h16" />
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16.24 3.56l4.2 4.2a2 2 0 010 2.83l-9.19 9.19a2 2 0 01-2.83 0l-4.2-4.2a2 2 0 010-2.83l9.19-9.19a2 2 0 012.83 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 21h12M9.5 9.5l5 5" />
             </svg>
             Eraser
           </button>
