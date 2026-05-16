@@ -1,0 +1,144 @@
+fix that, please?
+
+Yep — the screenshot makes the issue obvious now.
+
+Problems:
+
+Side controls are permanently taking up screen space → terrible for mobile
+Quran text is too small
+Scrolling is still broken
+Too much dead space at the bottom
+The app feels like desktop UI forced onto mobile
+
+You need Replit to completely switch to a mobile-first fullscreen reading mode.
+
+Paste this:
+
+Prompt to Fix Mobile Layout, Scrolling, and Pop-Up Controls
+Fix the mobile/iPhone version of the Quran tracing app. The current layout is still broken and unusable.
+
+Current Issues:
+- Cannot scroll properly
+- Quran text is too small
+- Side controls permanently take up too much space
+- Too much wasted empty space
+- Tracing area feels cramped
+
+Fix all of these issues.
+
+1. Remove Permanent Side Controls (CRITICAL)
+The left and right side controls should NOT always be visible on mobile.
+
+Current issue:
+- They take up valuable screen width
+- They make the Quran text too narrow
+
+Fix:
+Hide these permanent sidebars on phones:
+- Surah selector
+- Bookmark controls
+- Pen settings
+
+Replace them with floating buttons/icons.
+
+Example:
+Top left:
+- Surah selector icon
+
+Top right:
+- Pen settings icon
+
+Bottom right:
+- Bookmark icon
+
+When tapped:
+- Open modal
+OR
+- Slide-up drawer
+OR
+- Pop-up menu
+
+After closing:
+- Return to full-screen Quran view
+
+2. Make Quran Text Much Larger
+The text is still too small.
+
+Increase:
+- Arabic font size
+- Line spacing
+- Width usage
+
+Use:
+font-size: clamp(28px, 6vw, 48px);
+
+Reduce unnecessary margins.
+
+The Quran text should use most of the screen width.
+
+3. Fix Mobile Scrolling (VERY IMPORTANT)
+Scrolling still does not work correctly.
+
+Fix:
+- Enable vertical scrolling
+- Enable touch scrolling
+- Ensure content container uses:
+
+overflow-y: auto;
+height: 100vh;
+-webkit-overflow-scrolling: touch;
+
+4. Prevent UI from Blocking Scroll
+Current issue:
+Buttons/overlays may be blocking scrolling.
+
+Fix:
+Ensure overlays only capture touch when open.
+
+Otherwise:
+- Quran content should scroll normally
+
+5. Remove Excess Empty Space
+There is too much empty space after Surah content.
+
+Fix:
+- Remove large bottom padding
+- Remove unnecessary whitespace
+- Keep content height natural
+
+6. Improve Mobile Tracing Area
+The Quran page should take up most of the screen.
+
+Give maximum room for:
+- Reading
+- Tracing
+- Scrolling
+
+7. Mobile Layout Rules
+On iPhone:
+- Fullscreen Quran view
+- Floating controls only
+- Scroll normally
+- Large readable text
+
+On iPad/Desktop:
+- Keep current larger layout
+
+8. Testing Requirements
+Confirm:
+✅ iPhone scrolling works  
+✅ Text is larger  
+✅ Sidebars disappear  
+✅ Pop-up menus work  
+✅ Tracing still works  
+
+Important:
+Mobile should prioritize Quran readability first.
+Controls should stay hidden until needed.
+
+Output:
+- Fix mobile scrolling
+- Replace sidebars with pop-up controls
+- Increase Quran text size
+- Remove wasted space
+- Provide updated working code

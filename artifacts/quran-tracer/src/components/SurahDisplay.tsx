@@ -415,7 +415,7 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
           {/* ── Footer: prev / next surah ────────────────────── */}
           <div style={{
             display: "flex", justifyContent: "space-between", alignItems: "stretch",
-            gap: "0.75rem", padding: "1.25rem 5% 2.5rem",
+            gap: "0.75rem", padding: "1rem 5% 1.25rem",
             opacity, transition,
           }}>
             {prevChapter ? (
@@ -551,8 +551,8 @@ function PageSection({
             )}
             <div style={{
               fontFamily,
-              fontSize:    "clamp(24px, 3.6vw, 38px)",
-              lineHeight:  2,
+              fontSize:    "clamp(30px, 6vw, 42px)",
+              lineHeight:  2.1,
               color:       textColor,
               textAlign:   "center",
               direction:   "rtl",
