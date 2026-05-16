@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback } from "react";
 import { SurahDisplay, SurahDisplayHandle } from "@/components/SurahDisplay";
 import { Toolbar } from "@/components/Toolbar";
 import { SurahNav } from "@/components/SurahNav";
@@ -6,9 +6,8 @@ import { BookmarkPanel } from "@/components/BookmarkPanel";
 import { PenSettings } from "@/hooks/useCanvas";
 import { useQuran } from "@/hooks/useQuran";
 import { useBookmarks } from "@/hooks/useBookmarks";
-import { useAudio, formatTime } from "@/hooks/useAudio";
 import { useAuth } from "@/hooks/useAuth";
-import { TOTAL_PAGES, AVAILABLE_RECITERS } from "@/services/quranApi";
+import { TOTAL_PAGES } from "@/services/quranApi";
 
 const PANEL_WIDTH = 288;
 
@@ -17,7 +16,6 @@ type LeftTab = "surahs" | "bookmarks";
 export default function TracerPage() {
   const [isDark,           setIsDark]           = useState(false);
   const [showText,         setShowText]         = useState(true);
-  const [showAudioPanel,   setShowAudioPanel]   = useState(false);
   const [leftOpen,         setLeftOpen]         = useState(false);
   const [leftTab,     setLeftTab]     = useState<LeftTab>("surahs");
   const [rightOpen,   setRightOpen]   = useState(false);
@@ -33,45 +31,11 @@ export default function TracerPage() {
     bookmarks, isBookmarked, toggleBookmark, removeBookmark, updateNote, syncState,
   } = useBookmarks(quran.currentPage, auth.tokenSet?.access_token ?? null);
 
-  const audio = useAudio();
-
   const currentChapterForNav = (() => {
     const verses = quran.getVerses(quran.currentPage);
     const cid = verses[0]?.chapter_id ?? null;
     return cid ? (quran.chapters.find(c => c.id === cid) ?? null) : null;
   })();
-
-  /* The chapter to play audio for */
-  const audioChapterId = quran.selectedChapterId ?? currentChapterForNav?.id ?? null;
-
-  /* Auto-show player panel when audio becomes active */
-  useEffect(() => {
-    const { state } = audio.status;
-    if (state === "playing" || state === "loading") setShowAudioPanel(true);
-  }, [audio.status.state]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  /* Auto-switch audio when the surah changes and audio is active */
-  const prevAudioChapterRef = useRef<number | null>(null);
-  useEffect(() => {
-    if (audioChapterId === null) return;
-    if (audioChapterId === prevAudioChapterRef.current) return;
-    prevAudioChapterRef.current = audioChapterId;
-    const { state } = audio.status;
-    if (state === "playing" || state === "loading" || state === "paused") {
-      audio.playChapter(audioChapterId);
-    }
-  }, [audioChapterId, audio]);
-
-  const handleAudioToggle = useCallback(() => {
-    const { state } = audio.status;
-    if (state === "playing") {
-      audio.pause();
-    } else if (state === "paused" && audio.status.chapterId === audioChapterId) {
-      audio.resume();
-    } else if (audioChapterId) {
-      audio.playChapter(audioChapterId);
-    }
-  }, [audio, audioChapterId]);
 
   const closeAll = useCallback(() => { setLeftOpen(false); setRightOpen(false); }, []);
 
@@ -259,23 +223,6 @@ export default function TracerPage() {
 
           <Sep isDark={isDark} />
 
-          {/* Audio — toggles panel; play lives inside the panel */}
-          <ActionBtn
-            onClick={() => setShowAudioPanel(v => !v)}
-            title={showAudioPanel ? "Hide audio player" : "Open audio player"}
-            color={showAudioPanel || audio.status.state === "playing" ? accent : iconColor}
-          >
-            {audio.status.state === "loading" ? (
-              <circle cx="12" cy="12" r="9" strokeDasharray="4 2" strokeLinecap="round" style={{ animation: "spin 1s linear infinite", transformOrigin: "center" }} />
-            ) : audio.status.state === "playing" ? (
-              <path strokeLinecap="round" strokeLinejoin="round" d="M10 9v6m4-6v6" />
-            ) : (
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 3l14 9-14 9V3z" />
-            )}
-          </ActionBtn>
-
-          <Sep isDark={isDark} />
-
           {/* Dark mode */}
           <ActionBtn onClick={() => setIsDark(v => !v)} title={isDark ? "Light mode" : "Dark mode"} color={iconColor}>
             {isDark
@@ -285,111 +232,6 @@ export default function TracerPage() {
           </ActionBtn>
         </div>
 
-        {/* ── Floating Audio Player ── */}
-        {showAudioPanel && (
-          <div
-            className="absolute left-1/2 -translate-x-1/2 pointer-events-auto"
-            style={{ top: "4.2rem", zIndex: 15, minWidth: 340, maxWidth: 520 }}
-          >
-            <div
-              className="flex flex-col gap-2 px-4 py-3 rounded-2xl shadow-lg border"
-              style={{
-                background:     isDark ? "rgba(20,20,42,0.96)" : "rgba(255,253,248,0.96)",
-                borderColor:    isDark ? "#2a2a4e" : "#d8d3c0",
-                backdropFilter: "blur(12px)",
-              }}
-            >
-              {/* Top row: reciter + stop */}
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2 min-w-0">
-                  {/* Animated waveform */}
-                  <div className="flex items-end gap-[2px]" style={{ height: 14 }}>
-                    {[0.4, 0.9, 0.6, 1.0, 0.5].map((h, i) => (
-                      <div
-                        key={i}
-                        style={{
-                          width: 3, borderRadius: 2,
-                          background: accent,
-                          height: `${h * 100}%`,
-                          animation: audio.status.state === "playing"
-                            ? `audioBar 0.8s ease-in-out ${i * 0.1}s infinite alternate`
-                            : "none",
-                          opacity: audio.status.state === "playing" ? 1 : 0.35,
-                        }}
-                      />
-                    ))}
-                  </div>
-                  <span className="text-xs font-medium truncate" style={{ color: accent }}>
-                    {audio.status.reciterName}
-                  </span>
-                </div>
-                {/* Reciter selector */}
-                <select
-                  value={audio.status.reciterId}
-                  onChange={e => audio.setReciter(Number(e.target.value))}
-                  className="text-xs rounded-lg px-2 py-1 border outline-none"
-                  style={{
-                    background:  isDark ? "#1a1a2e" : "#f4f0e6",
-                    color:       iconColor,
-                    borderColor: isDark ? "#2a2a4e" : "#d8d3c0",
-                    fontSize:    11,
-                  }}
-                >
-                  {AVAILABLE_RECITERS.map(r => (
-                    <option key={r.id} value={r.id}>{r.name}</option>
-                  ))}
-                </select>
-                {/* Play / Pause inside panel */}
-                <button
-                  onClick={handleAudioToggle}
-                  title={audio.status.state === "playing" ? "Pause" : "Play"}
-                  disabled={!audioChapterId || audio.status.state === "loading"}
-                  className="p-1 rounded-full opacity-70 hover:opacity-100 transition-opacity disabled:opacity-30"
-                  style={{ color: accent }}
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                    {audio.status.state === "loading" ? (
-                      <circle cx="12" cy="12" r="9" strokeDasharray="4 2" strokeLinecap="round" style={{ animation: "spin 1s linear infinite", transformOrigin: "center" }} />
-                    ) : audio.status.state === "playing" ? (
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M10 9v6m4-6v6" />
-                    ) : (
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 3l14 9-14 9V3z" />
-                    )}
-                  </svg>
-                </button>
-              </div>
-
-              {/* Progress row */}
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-mono tabular-nums" style={{ color: iconColor, minWidth: 32 }}>
-                  {formatTime(audio.status.currentTime)}
-                </span>
-                <div
-                  className="flex-1 h-1.5 rounded-full cursor-pointer relative"
-                  style={{ background: isDark ? "#2a2a4e" : "#ddd8c8" }}
-                  onClick={e => {
-                    const rect = e.currentTarget.getBoundingClientRect();
-                    const pct  = (e.clientX - rect.left) / rect.width;
-                    audio.seek(pct * audio.status.duration);
-                  }}
-                >
-                  <div
-                    className="absolute inset-y-0 left-0 rounded-full transition-all"
-                    style={{
-                      width: audio.status.duration
-                        ? `${(audio.status.currentTime / audio.status.duration) * 100}%`
-                        : "0%",
-                      background: accent,
-                    }}
-                  />
-                </div>
-                <span className="text-xs font-mono tabular-nums" style={{ color: iconColor, minWidth: 32, textAlign: "right" }}>
-                  {formatTime(audio.status.duration)}
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
       </main>
 
       {/* ── RIGHT PANEL: Pen settings ── */}
