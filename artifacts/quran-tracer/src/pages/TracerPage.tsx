@@ -11,12 +11,14 @@ import { TOTAL_PAGES } from "@/services/quranApi";
 
 const PANEL_WIDTH = 288;
 const panelWidthCss = `min(${PANEL_WIDTH}px, calc(100vw - 56px))`;
+const rightPanelWidthCss = `min(${PANEL_WIDTH}px, 100vw)`;
 
 type LeftTab = "surahs" | "bookmarks";
 
 export default function TracerPage() {
   const [isDark,           setIsDark]           = useState(false);
   const [showText,         setShowText]         = useState(true);
+  const [fingerDraw,       setFingerDraw]       = useState(false);
   const [leftOpen,         setLeftOpen]         = useState(false);
   const [leftTab,     setLeftTab]     = useState<LeftTab>("surahs");
   const [rightOpen,   setRightOpen]   = useState(false);
@@ -161,6 +163,7 @@ export default function TracerPage() {
             showText={showText}
             penSettings={penSettings}
             isDark={isDark}
+            fingerDraw={fingerDraw}
             onPageChange={quran.goToPage}
             onSelectSurah={quran.selectChapter}
             surahRange={quran.surahRange}
@@ -198,6 +201,22 @@ export default function TracerPage() {
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
+            </svg>
+          </button>
+
+          {/* Mobile-only: Finger draw / scroll toggle */}
+          <button
+            onClick={() => setFingerDraw(v => !v)}
+            title={fingerDraw ? "Switch to scroll mode" : "Switch to finger drawing"}
+            className="sm:hidden p-1.5 rounded-full transition-all hover:opacity-70"
+            style={{ color: fingerDraw ? accent : iconColor, background: fingerDraw ? (isDark ? "rgba(212,175,55,0.15)" : "rgba(26,58,110,0.10)") : "transparent" }}
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              {fingerDraw ? (
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 11.25V5.25a2.25 2.25 0 014.5 0V12m0-3.75a2.25 2.25 0 014.5 0v6.75m-4.5 0a2.25 2.25 0 014.5 0v1.5M9 11.25a2.25 2.25 0 00-4.5 0v3.75c0 4.142 3.358 7.5 7.5 7.5s7.5-3.358 7.5-7.5" />
+              ) : (
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8 7l4-4m0 0l4 4m-4-4v18m0 0l4-4m-4 4l-4-4" />
+              )}
             </svg>
           </button>
 
@@ -267,7 +286,7 @@ export default function TracerPage() {
       <div className="relative flex-shrink-0 flex" style={{ zIndex: 20 }}>
         <div
           className={`absolute top-0 right-0 h-full flex flex-col border-l shadow-xl overflow-hidden transition-all duration-300 ease-out ${panelBg}`}
-          style={{ width: rightOpen ? panelWidthCss : 0, opacity: rightOpen ? 1 : 0, pointerEvents: rightOpen ? "auto" : "none" }}
+          style={{ width: rightOpen ? rightPanelWidthCss : 0, opacity: rightOpen ? 1 : 0, pointerEvents: rightOpen ? "auto" : "none" }}
         >
           <div className="flex items-center justify-between px-4 py-3 border-b flex-shrink-0" style={{ borderColor: isDark ? "#2a2a4e" : "#e0dbd0" }}>
             <span className="text-sm font-bold" style={{ color: accent }}>Pen Settings</span>
@@ -277,7 +296,7 @@ export default function TracerPage() {
               </svg>
             </button>
           </div>
-          <div className="flex-1 overflow-y-auto p-3" style={{ width: panelWidthCss }}>
+          <div className="flex-1 overflow-y-auto p-3" style={{ width: rightPanelWidthCss }}>
             <Toolbar
               penSettings={penSettings}
               onPenChange={(s) => setPenSettings(p => ({ ...p, ...s }))}

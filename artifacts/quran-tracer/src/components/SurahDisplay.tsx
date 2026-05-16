@@ -13,6 +13,7 @@ interface SurahDisplayProps {
   showText:          boolean;
   penSettings:       PenSettings;
   isDark:            boolean;
+  fingerDraw:        boolean;
   onPageChange:      (page: number) => void;
   onSelectSurah:     (chapter: Chapter) => void;
   surahRange:        SurahRange | null;
@@ -39,7 +40,7 @@ function injectPageFont(page: number) {
 
 export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
   function SurahDisplay(
-    { chapters, getVerses, currentPage, showText, penSettings, isDark, onPageChange, onSelectSurah, surahRange, selectedChapterId },
+    { chapters, getVerses, currentPage, showText, penSettings, isDark, fingerDraw, onPageChange, onSelectSurah, surahRange, selectedChapterId },
     ref,
   ) {
     const outerRef      = useRef<HTMLDivElement>(null);
@@ -197,9 +198,9 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
       if ((e.target as HTMLElement).closest("button, a, input, select")) return false;
       if (e.pointerType === "pen")   return true;
       if (e.pointerType === "mouse") return true;
-      if (e.pointerType === "touch") return e.isPrimary;
+      if (e.pointerType === "touch") return fingerDraw && e.isPrimary;
       return false;
-    }, []);
+    }, [fingerDraw]);
 
     const onPtrDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
       if (!shouldDraw(e)) return;
@@ -293,7 +294,7 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
             overscrollBehavior: "contain",
             scrollbarWidth: "thin",
             scrollbarColor: isDark ? "#2a2a4e transparent" : "#d8d3c0 transparent",
-            touchAction: "pan-y",
+            touchAction: fingerDraw ? "none" : "pan-y",
           } as React.CSSProperties}
           onScroll={onScroll}
           onPointerDown={onPtrDown}
