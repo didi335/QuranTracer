@@ -76,7 +76,8 @@ export function Toolbar({
         </div>
       </div>
 
-      {/* Color */}
+      {/* Color (pen only) */}
+      {penSettings.mode !== "eraser" && (
       <div>
         <label className={`text-xs font-semibold uppercase tracking-wider mb-2 block ${mutedText}`}>Color</label>
         <div className="grid grid-cols-6 gap-1.5 mb-2">
@@ -106,6 +107,7 @@ export function Toolbar({
           <span className="text-xs font-mono">{penSettings.color}</span>
         </div>
       </div>
+      )}
 
       {/* Thickness */}
       <div>
