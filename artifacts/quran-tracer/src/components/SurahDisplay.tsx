@@ -13,7 +13,6 @@ interface SurahDisplayProps {
   showText:          boolean;
   penSettings:       PenSettings;
   isDark:            boolean;
-  fingerDraw:        boolean;
   onPageChange:      (page: number) => void;
   onSelectSurah:     (chapter: Chapter) => void;
   surahRange:        SurahRange | null;
@@ -40,7 +39,7 @@ function injectPageFont(page: number) {
 
 export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
   function SurahDisplay(
-    { chapters, getVerses, currentPage, showText, penSettings, isDark, fingerDraw, onPageChange, onSelectSurah, surahRange, selectedChapterId },
+    { chapters, getVerses, currentPage, showText, penSettings, isDark, onPageChange, onSelectSurah, surahRange, selectedChapterId },
     ref,
   ) {
     const outerRef      = useRef<HTMLDivElement>(null);
@@ -190,43 +189,103 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
 
     /* ── Drawing ─────────────────────────────────────────────── */
     /* Rules:
-       - pen (Apple Pencil / stylus): ALWAYS draws, regardless of drawMode
-       - mouse (click+drag):          ALWAYS draws
-       - touch (finger):              draws only when drawMode is ON; scrolls otherwise
-    */
-    const shouldDraw = useCallback((e: React.PointerEvent) => {
-      if ((e.target as HTMLElement).closest("button, a, input, select")) return false;
-      if (e.pointerType === "pen")   return true;
-      if (e.pointerType === "mouse") return true;
-      if (e.pointerType === "touch") return fingerDraw && e.isPrimary;
-      return false;
-    }, [fingerDraw]);
+       - pen (Apple Pencil / stylus): ALWAYS draws immediately
+       - mouse (click+drag):          ALWAYS draws immediately
+       - touch (finger):              auto-detects scroll vs. draw
+         The scroll container has touch-action: pan-y, so the browser
+         takes over for vertical swipes (firing pointercancel on our
+         pointer). We DEFER starting a stroke until the finger has
+         moved a few pixels — if pointercancel arrives first, the user
+         was scrolling. Otherwise we commit to drawing and replay the
+         buffered points. */
+    type PendingTouch = {
+      pointerId: number;
+      points: { x: number; y: number; pressure: number }[];
+      startX: number; startY: number;
+      decided: boolean;
+    };
+    const pendingTouch = useRef<PendingTouch | null>(null);
+
+    const isInteractiveTarget = (e: React.PointerEvent) =>
+      !!(e.target as HTMLElement).closest("button, a, input, select");
 
     const onPtrDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-      /* If a second touch lands while drawing, cancel the stroke so the
-         user can pinch-zoom or two-finger scroll. */
+      if (isInteractiveTarget(e)) return;
+
+      /* Second touch while drawing → cancel stroke so pinch-zoom / 2-finger scroll works */
       if (isDrawing.current && e.pointerType === "touch" && !e.isPrimary) {
         stopDrawing();
+        pendingTouch.current = null;
         return;
       }
-      if (!shouldDraw(e)) return;
-      e.preventDefault();
-      startDrawing(getCanvasPoint(e.clientX, e.clientY, e.pressure > 0 ? e.pressure : 0.5));
-      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-    }, [shouldDraw, startDrawing, stopDrawing, getCanvasPoint, isDrawing]);
+
+      if (e.pointerType === "pen" || e.pointerType === "mouse") {
+        e.preventDefault();
+        startDrawing(getCanvasPoint(e.clientX, e.clientY, e.pressure > 0 ? e.pressure : 0.5));
+        (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+        return;
+      }
+
+      if (e.pointerType === "touch" && e.isPrimary) {
+        /* Don't start drawing yet — buffer until intent is clear. */
+        pendingTouch.current = {
+          pointerId: e.pointerId,
+          points: [{ x: e.clientX, y: e.clientY, pressure: 0.5 }],
+          startX: e.clientX, startY: e.clientY,
+          decided: false,
+        };
+      }
+    }, [startDrawing, stopDrawing, getCanvasPoint, isDrawing]);
 
     const onPtrMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-      if (!isDrawing.current) return;
-      if (e.pointerType === "mouse" && e.buttons === 0) { stopDrawing(); return; }
-      e.preventDefault();
-      /* Use getCoalescedEvents for smoother Apple Pencil strokes when available */
-      const events = e.nativeEvent.getCoalescedEvents?.() ?? [e.nativeEvent];
-      for (const ev of events) {
-        draw(getCanvasPoint(ev.clientX, ev.clientY, ev.pressure > 0 ? ev.pressure : 0.5));
+      /* Active stroke → just keep drawing */
+      if (isDrawing.current) {
+        if (e.pointerType === "mouse" && e.buttons === 0) { stopDrawing(); return; }
+        e.preventDefault();
+        const events = e.nativeEvent.getCoalescedEvents?.() ?? [e.nativeEvent];
+        for (const ev of events) {
+          draw(getCanvasPoint(ev.clientX, ev.clientY, ev.pressure > 0 ? ev.pressure : 0.5));
+        }
+        return;
       }
-    }, [isDrawing, draw, stopDrawing, getCanvasPoint]);
+
+      /* Pending touch → wait for enough motion, then commit or wait for cancel */
+      const pt = pendingTouch.current;
+      if (pt && e.pointerType === "touch" && e.pointerId === pt.pointerId && !pt.decided) {
+        pt.points.push({ x: e.clientX, y: e.clientY, pressure: 0.5 });
+        const dx = e.clientX - pt.startX;
+        const dy = e.clientY - pt.startY;
+        const dist = Math.hypot(dx, dy);
+        /* Vertical-dominant motion → let the browser scroll (it will fire pointercancel) */
+        if (dist > 6 && Math.abs(dy) > Math.abs(dx) * 1.2) {
+          /* Don't commit; let pan-y / pointercancel take over */
+          pt.decided = true;
+          pendingTouch.current = null;
+          return;
+        }
+        /* Enough motion AND mostly horizontal-ish → commit to drawing */
+        if (dist > 6) {
+          pt.decided = true;
+          e.preventDefault();
+          (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+          const pts = pt.points;
+          startDrawing(getCanvasPoint(pts[0].x, pts[0].y, 0.5));
+          for (let i = 1; i < pts.length; i++) {
+            draw(getCanvasPoint(pts[i].x, pts[i].y, 0.5));
+          }
+          pendingTouch.current = null;
+        }
+      }
+    }, [isDrawing, draw, startDrawing, stopDrawing, getCanvasPoint]);
 
     const onPtrUp = useCallback((_e: React.PointerEvent<HTMLDivElement>) => {
+      pendingTouch.current = null;
+      stopDrawing();
+    }, [stopDrawing]);
+
+    const onPtrCancel = useCallback((_e: React.PointerEvent<HTMLDivElement>) => {
+      /* Browser took over the gesture (e.g. for scrolling) → discard buffer */
+      pendingTouch.current = null;
       stopDrawing();
     }, [stopDrawing]);
 
@@ -300,14 +359,14 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
             overscrollBehavior: "contain",
             scrollbarWidth: "thin",
             scrollbarColor: isDark ? "#2a2a4e transparent" : "#d8d3c0 transparent",
-            touchAction: fingerDraw ? "none" : "pan-y",
+            touchAction: "pan-y",
           } as React.CSSProperties}
           onScroll={onScroll}
           onPointerDown={onPtrDown}
           onPointerMove={onPtrMove}
           onPointerUp={onPtrUp}
           onPointerLeave={onPtrUp}
-          onPointerCancel={onPtrUp}
+          onPointerCancel={onPtrCancel}
         >
           {/* ── Drawing canvas — anchored to content, scrolls with text ── */}
           <canvas
