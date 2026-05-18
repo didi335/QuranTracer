@@ -313,7 +313,7 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
           />
 
           {/* ── All scrollable content wrapped so we can measure its height ── */}
-          <div ref={contentRef}>
+          <div ref={contentRef} style={{ display: "flex", flexDirection: "column", minHeight: "100%" }}>
 
           {/* ── Surah header (once at the very top) ─────────── */}
           {chapter && (
@@ -417,6 +417,7 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
           <div style={{
             display: "flex", justifyContent: "space-between", alignItems: "stretch",
             gap: "0.75rem", padding: "1rem 5% 1.25rem",
+            marginTop: "auto",
             opacity, transition,
           }}>
             {prevChapter ? (
