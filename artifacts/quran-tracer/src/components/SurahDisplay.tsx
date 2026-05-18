@@ -532,7 +532,7 @@ function PageSection({
   }
 
   return (
-    <div style={{ padding: isFirstOfSurah ? "0.5rem 5% 0" : "1.5rem 5% 0", userSelect: "none", pointerEvents: "none" }}>
+    <div style={{ padding: isFirstOfSurah ? "0.5rem clamp(0.5rem, 3%, 3rem) 0" : "1.5rem clamp(0.5rem, 3%, 3rem) 0", userSelect: "none", pointerEvents: "none" }}>
       <div style={{
         display: "flex", flexDirection: "column",
         maxWidth: 960, margin: "0 auto",
@@ -552,7 +552,7 @@ function PageSection({
             )}
             <div style={{
               fontFamily,
-              fontSize:    "clamp(30px, 6vw, 42px)",
+              fontSize:    "clamp(18px, 5vw, 42px)",
               lineHeight:  2.1,
               color:       textColor,
               textAlign:   "center",
