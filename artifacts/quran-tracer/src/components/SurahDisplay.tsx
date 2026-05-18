@@ -203,11 +203,17 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
     }, [fingerDraw]);
 
     const onPtrDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+      /* If a second touch lands while drawing, cancel the stroke so the
+         user can pinch-zoom or two-finger scroll. */
+      if (isDrawing.current && e.pointerType === "touch" && !e.isPrimary) {
+        stopDrawing();
+        return;
+      }
       if (!shouldDraw(e)) return;
       e.preventDefault();
       startDrawing(getCanvasPoint(e.clientX, e.clientY, e.pressure > 0 ? e.pressure : 0.5));
       (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-    }, [shouldDraw, startDrawing, getCanvasPoint]);
+    }, [shouldDraw, startDrawing, stopDrawing, getCanvasPoint, isDrawing]);
 
     const onPtrMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
       if (!isDrawing.current) return;
