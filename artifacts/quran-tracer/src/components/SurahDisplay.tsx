@@ -694,14 +694,16 @@ function PageSection({
               wordBreak:    "normal",
             }}>
               {pl.words.map((w, wi) => (
-                <span
-                  key={w.id}
-                  style={{
-                    color: w.char_type_name === "end" ? accentColor : textColor,
-                    marginInlineStart: wi > 0 ? "0.03em" : 0,
-                  }}
-                >
-                  {w.code_v2}
+                <span key={w.id}>
+                  {wi > 0 && " "}
+                  <span
+                    style={{
+                      color: w.char_type_name === "end" ? accentColor : textColor,
+                      display: "inline-block",
+                    }}
+                  >
+                    {w.code_v2}
+                  </span>
                 </span>
               ))}
             </div>
