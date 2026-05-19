@@ -91,10 +91,23 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
       const newW = Math.round(w * dpr);
       const newH = Math.round(h * dpr);
       if (canvas.width === newW && canvas.height === newH) return; // no change — preserve drawing
+      /* Preserve existing strokes across canvas resize. Assigning
+         canvas.width/height clears the bitmap, so snapshot pixels first
+         and stamp them back at the same top-left origin afterward. */
+      const ctx = canvas.getContext("2d");
+      let snapshot: HTMLCanvasElement | null = null;
+      if (ctx && canvas.width > 0 && canvas.height > 0) {
+        snapshot = document.createElement("canvas");
+        snapshot.width  = canvas.width;
+        snapshot.height = canvas.height;
+        const sctx = snapshot.getContext("2d");
+        if (sctx) sctx.drawImage(canvas, 0, 0);
+      }
       canvas.width        = newW;
       canvas.height       = newH;
       canvas.style.width  = `${w}px`;
       canvas.style.height = `${h}px`;
+      if (snapshot && ctx) ctx.drawImage(snapshot, 0, 0);
     }, [canvasRef]);
 
     /* Re-sync whenever the content div resizes (pages/fonts loading in) */

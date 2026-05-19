@@ -1,0 +1,100 @@
+Fix the tracing layer persistence issue in the Quran tracing app.
+
+Current issue:
+- Whenever the pen settings button/menu is opened, the tracing/writing disappears.
+- The user’s drawn strokes should NEVER disappear when opening settings.
+
+This is a major usability bug.
+
+========================
+1. KEEP DRAWINGS PERSISTENT
+========================
+
+Fix:
+- Opening the pen settings panel should NOT clear the canvas
+- Drawings/traces must remain fully visible at all times
+
+Requirements:
+✅ Existing strokes stay visible  
+✅ No canvas reset  
+✅ No accidental clearing  
+✅ No disappearing lines  
+
+========================
+2. FIX CANVAS RE-RENDERING
+========================
+
+Likely issue:
+- The canvas component is being re-mounted or re-rendered when settings state changes.
+
+Fix:
+- Prevent unnecessary canvas re-renders
+- Keep drawing state persistent
+- Separate settings state from canvas state
+
+Do NOT:
+- Recreate the canvas on settings toggle
+- Reset stroke data when opening menus
+
+========================
+3. STORE TRACE DATA PROPERLY
+========================
+
+Ensure all drawing data is stored separately from UI state.
+
+Implementation idea:
+- Store strokes in persistent state array/object
+- Re-render strokes from stored data if needed
+
+Requirements:
+✅ Strokes survive UI changes  
+✅ Strokes survive settings toggles  
+✅ Traces remain aligned correctly  
+
+========================
+4. SETTINGS PANEL BEHAVIOR
+========================
+
+Opening pen settings should:
+- Overlay on top of existing content
+- NOT remove Quran text
+- NOT remove tracing
+- NOT refresh the page
+- NOT remount canvas
+
+The settings panel should behave like:
+- A lightweight floating overlay/modal
+
+========================
+5. KEEP CURRENT LAYOUT
+========================
+
+DO NOT redesign the layout.
+
+Keep:
+✅ Current Quran sizing  
+✅ Current spacing  
+✅ Current tracing UI  
+✅ Current iPad layout  
+
+Only fix:
+- Trace disappearing bug
+- Canvas persistence/state handling
+
+========================
+6. FINAL QA TEST
+========================
+
+Confirm ALL work correctly:
+
+✅ Drawings remain visible after opening settings  
+✅ Drawings remain visible after closing settings  
+✅ Quran text stays visible  
+✅ No canvas clearing  
+✅ No flashing/reloading  
+✅ Tracing still works normally  
+✅ Apple Pencil still works  
+✅ Finger tracing still works  
+✅ Layout remains unchanged  
+
+The tracing layer should now behave like a real note-taking app where drawings persist regardless 
