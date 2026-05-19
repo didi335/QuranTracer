@@ -110,22 +110,31 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
       if (snapshot && ctx) ctx.drawImage(snapshot, 0, 0);
     }, [canvasRef]);
 
-    /* Re-sync whenever the content div resizes (pages/fonts loading in) */
+    /* Re-sync whenever the content div resizes (pages/fonts loading in).
+       Wrapped in rAF to avoid "ResizeObserver loop" warnings. */
     useEffect(() => {
       const el = contentRef.current;
       if (!el) return;
-      const ro = new ResizeObserver(syncCanvas);
+      let frame = 0;
+      const ro = new ResizeObserver(() => {
+        cancelAnimationFrame(frame);
+        frame = requestAnimationFrame(syncCanvas);
+      });
       ro.observe(el);
-      return () => ro.disconnect();
+      return () => { cancelAnimationFrame(frame); ro.disconnect(); };
     }, [syncCanvas]);
 
     /* Also re-sync on outer container width change */
     useEffect(() => {
       const el = outerRef.current;
       if (!el) return;
-      const ro = new ResizeObserver(syncCanvas);
+      let frame = 0;
+      const ro = new ResizeObserver(() => {
+        cancelAnimationFrame(frame);
+        frame = requestAnimationFrame(syncCanvas);
+      });
       ro.observe(el);
-      return () => ro.disconnect();
+      return () => { cancelAnimationFrame(frame); ro.disconnect(); };
     }, [syncCanvas]);
 
     useEffect(() => {
