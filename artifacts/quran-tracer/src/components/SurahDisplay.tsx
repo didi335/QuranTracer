@@ -423,20 +423,20 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
                   display: "flex", alignItems: "center", justifyContent: "center", gap: "1rem",
                   padding: "clamp(1.5rem, 3vw, 2.5rem) 5% clamp(1rem, 2vw, 1.5rem)",
                 }}>
-                  <div style={{ flex: 1, maxWidth: "12%", height: 1, background: dividerColor, opacity: 0.6 }} />
+                  <div style={{ flex: 1, maxWidth: "12%", height: 1, background: dividerColor, opacity: 0.6, transform: "translateY(0.15em)" }} />
                   <div style={{
                     fontFamily: '"Amiri Quran", "Amiri", serif',
-                    fontSize: "clamp(18px, 2.75vw, 32px)",
+                    fontSize: "clamp(20px, 3vw, 35px)",
                     fontWeight: 400,
                     color: accentColor,
                     textAlign: "center",
                     direction: "rtl",
-                    lineHeight: 1.5,
+                    lineHeight: 1,
                     flexShrink: 0,
                   }}>
                     بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ
                   </div>
-                  <div style={{ flex: 1, maxWidth: "12%", height: 1, background: dividerColor, opacity: 0.6 }} />
+                  <div style={{ flex: 1, maxWidth: "12%", height: 1, background: dividerColor, opacity: 0.6, transform: "translateY(0.15em)" }} />
                 </div>
               )}
             </div>
