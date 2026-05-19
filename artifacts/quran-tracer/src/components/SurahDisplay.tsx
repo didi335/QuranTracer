@@ -385,7 +385,7 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
             <div style={{ opacity, transition }}>
               {/* Large calligraphic header */}
               <div style={{
-                display: "flex", alignItems: "center", gap: "1.5rem",
+                display: "flex", alignItems: "center", justifyContent: "center", gap: "1.5rem",
                 padding: "clamp(3.5rem, 5vw, 4.5rem) 5% 2rem",
                 borderBottom: `1px solid ${dividerColor}`,
                 marginBottom: "0.5rem",
