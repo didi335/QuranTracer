@@ -1,0 +1,213 @@
+FINAL APP FIX + SUBMISSION CHECKLIST
+
+Go through the ENTIRE Quran tracing app and make sure EVERYTHING below is fully working, polished, responsive, accurate, and stable before finalizing.
+
+========================
+1. QURAN ACCURACY
+========================
+
+- Ensure ALL Quran text matches the API exactly
+- No missing ayahs
+- No duplicated ayahs
+- No incorrect Arabic letters
+- No broken Arabic shaping
+- Maintain proper RTL formatting
+- Ensure ayah numbering is correct
+- Ensure page numbering is correct
+- Ensure Surah order is correct
+- Ensure text rendering is accurate and respectful
+
+========================
+2. SURAH STRUCTURE
+========================
+
+- Only ONE Surah should load at a time
+- Do NOT allow scrolling into another Surah
+- When the selected Surah ends, scrolling stops
+- Switching Surahs should:
+  - Load only that Surah
+  - Reset scroll to top
+  - Remove previous Surah content
+
+- Surah switching should happen ONLY from the side menu / popup
+
+========================
+3. SCROLLING
+========================
+
+Fix scrolling on ALL devices:
+
+Desktop/Mac:
+- Mouse wheel scrolling works
+- Trackpad scrolling works
+- Keyboard arrow scrolling works
+- Spacebar scrolling works
+
+iPad/iPhone:
+- Touch scrolling works smoothly
+- Momentum scrolling works naturally
+- No lag or stuttering
+
+Technical:
+- Use proper scroll containers
+- Ensure no canvas blocks scrolling
+- Use:
+  overflow-y: auto;
+  height: 100vh;
+  -webkit-overflow-scrolling: touch;
+
+========================
+4. DRAWING / TRACING
+========================
+
+Tracing MUST work perfectly on:
+
+- Apple Pencil
+- Finger touch
+- Mouse
+
+Fix:
+- Smooth continuous strokes
+- No gaps in lines
+- Low latency drawing
+- Stroke stabilization/smoothing
+- Undo works
+- Clear works
+
+Behavior:
+- Apple Pencil always draws
+- Finger:
+   - Draws in Draw Mode
+   - Scrolls when Draw Mode is off
+
+Desktop:
+- Mouse click + drag draws normally
+
+========================
+5. MOBILE / IPHONE FIXES
+========================
+
+The mobile layout must be redesigned properly.
+
+REMOVE permanent sidebars on mobile:
+- Surah menu
+- Pen settings
+- Bookmark menu
+
+Replace with:
+- Floating buttons/icons
+- Pop-up menus
+- Slide-out drawers
+
+Mobile priorities:
+- Fullscreen Quran view
+- Maximum tracing space
+- Large readable Quran text
+- Smooth scrolling
+- Easy tracing
+
+Fix:
+- Arabic text getting cut off
+- Cramped layouts
+- Tiny text
+- Broken spacing
+
+========================
+6. QURAN TEXT LAYOUT
+========================
+
+- Increase Quran text size significantly
+- Use more screen width
+- Reduce wasted side margins
+- Ensure proper line spacing
+- Ensure text is centered properly
+- No awkward empty space
+- No overlapping elements
+
+Header fixes:
+- Surah title perfectly centered
+- Side icons should NOT affect title alignment
+- Reduce wasted header height
+- Keep balanced spacing above/below title
+
+========================
+7. PAGE STRUCTURE
+========================
+
+- Each Quran page should be separate and clean
+- Do NOT merge pages together
+- If a Surah ends mid-page:
+   - End page early
+   - Start next Surah on new page
+
+- Add proper spacing between pages
+- Maintain Mushaf-style appearance
+
+========================
+8. PERFORMANCE
+========================
+
+- No lag during scrolling
+- No lag during tracing
+- No freezing
+- No crashes
+- Optimize rendering
+- Lazy load pages if needed
+
+========================
+9. API REQUIREMENTS
+========================
+
+Ensure proper Quran Foundation API usage.
+
+Required:
+- Quran Content API
+
+Also integrate at least ONE User API feature:
+- Bookmarks
+OR
+- Collections
+OR
+- Streak tracking
+
+Ensure:
+- API data is the single source of truth
+- No hardcoded Quran text
+
+========================
+10. FINAL QA TEST
+========================
+
+Confirm ALL of these work:
+
+✅ iPhone scrolling  
+✅ iPad scrolling  
+✅ Mac scrolling  
+✅ Trackpad scrolling  
+✅ Apple Pencil drawing  
+✅ Finger drawing  
+✅ Mouse drawing  
+✅ Surah switching  
+✅ Accurate Quran text  
+✅ Correct ayah numbers  
+✅ Correct page numbers  
+✅ Pop-up mobile controls  
+✅ No broken layouts  
+✅ No overlapping UI  
+✅ No lag  
+✅ No crashes  
+
+========================
+11. FINAL GOAL
+========================
+
+The app should feel:
+- Clean
+- Minimal
+- Smooth
+- Responsive
+- Premium
+- Easy to use
+- Focused on Quran tracing and engagement
+
+The Quran text and tracing experience should always be the main focus of the screen.
