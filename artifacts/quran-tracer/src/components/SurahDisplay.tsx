@@ -478,7 +478,7 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
                   <div style={{ flex: 1, maxWidth: "12%", height: 1, background: dividerColor, opacity: 0.6, transform: "translateY(0.08em)" }} />
                   <div style={{
                     fontFamily: '"Amiri Quran", "Amiri", serif',
-                    fontSize: "clamp(27px, 4vw, 45px)",
+                    fontSize: "clamp(32px, 4vw, 45px)",
                     fontWeight: 400,
                     color: accentColor,
                     textAlign: "center",
@@ -664,7 +664,7 @@ function PageSection({
   }
 
   return (
-    <div style={{ padding: isFirstOfSurah ? "0.5rem clamp(0.5rem, 3%, 3rem) 0" : "1.5rem clamp(0.5rem, 3%, 3rem) 0", userSelect: "none", pointerEvents: "none" }}>
+    <div style={{ padding: isFirstOfSurah ? "0.5rem clamp(0.4rem, 2.5%, 3rem) 0" : "1.5rem clamp(0.4rem, 2.5%, 3rem) 0", userSelect: "none", pointerEvents: "none" }}>
       <div style={{
         display: "flex", flexDirection: "column",
         maxWidth: 960, margin: "0 auto",
@@ -684,7 +684,7 @@ function PageSection({
             )}
             <div style={{
               fontFamily,
-              fontSize:    page <= 2 ? "clamp(32px, 5.4vw, 64px)" : "clamp(28px, 4.6vw, 54px)",
+              fontSize:    page <= 2 ? "clamp(38px, 5.4vw, 64px)" : "clamp(34px, 4.6vw, 54px)",
               lineHeight:  2.2,
               color:       textColor,
               textAlign:   "center",
