@@ -684,7 +684,7 @@ function PageSection({
             )}
             <div style={{
               fontFamily,
-              fontSize:    page <= 2 ? "clamp(30px, 5vw, 52px)" : "clamp(26px, 4vw, 46px)",
+              fontSize:    page <= 2 ? "clamp(34px, 5.6vw, 60px)" : "clamp(30px, 4.6vw, 52px)",
               lineHeight:  2.2,
               color:       textColor,
               textAlign:   "center",
