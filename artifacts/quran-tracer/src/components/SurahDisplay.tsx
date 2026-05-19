@@ -684,12 +684,14 @@ function PageSection({
             )}
             <div style={{
               fontFamily,
-              fontSize:    page <= 2 ? "clamp(38px, 6.2vw, 68px)" : "clamp(34px, 5.2vw, 58px)",
+              fontSize:    page <= 2 ? "clamp(32px, 5.4vw, 64px)" : "clamp(28px, 4.6vw, 54px)",
               lineHeight:  2.2,
               color:       textColor,
               textAlign:   "center",
               direction:   "rtl",
               unicodeBidi: "bidi-override",
+              overflowWrap: "break-word",
+              wordBreak:    "normal",
             }}>
               {pl.words.map((w, wi) => (
                 <span
