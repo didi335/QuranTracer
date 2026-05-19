@@ -60,7 +60,7 @@ export default function TracerPage() {
       {/* ── LEFT PANEL ── */}
       <div className="relative flex-shrink-0 flex" style={{ zIndex: 20 }}>
         <div
-          className={`hidden sm:flex flex-col items-center gap-4 py-4 border-r transition-all duration-200 ${stripBg} ${leftOpen ? "opacity-0 pointer-events-none w-0 overflow-hidden" : "opacity-100 w-12"}`}
+          className={`hidden sm:flex flex-col items-center gap-4 py-4 border-r transition-opacity duration-200 w-12 ${stripBg} ${leftOpen ? "opacity-0 pointer-events-none" : "opacity-100"}`}
         >
           <StripBtn
             title="Surah Browser"
@@ -311,7 +311,7 @@ export default function TracerPage() {
         </div>
         {/* Slim strip */}
         <div
-          className={`hidden sm:flex flex-col items-center gap-4 py-4 border-l cursor-pointer transition-all duration-200 ${stripBg} ${rightOpen ? "opacity-0 pointer-events-none w-0 overflow-hidden" : "opacity-100 w-12"}`}
+          className={`hidden sm:flex flex-col items-center gap-4 py-4 border-l cursor-pointer transition-opacity duration-200 w-12 ${stripBg} ${rightOpen ? "opacity-0 pointer-events-none" : "opacity-100"}`}
           onClick={() => { setRightOpen(true); setLeftOpen(false); }}
           title="Pen Settings"
         >
