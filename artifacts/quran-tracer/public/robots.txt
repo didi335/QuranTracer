@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://quran-tracer.replit.app/sitemap.xml
