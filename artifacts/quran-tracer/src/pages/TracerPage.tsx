@@ -275,11 +275,6 @@ export default function TracerPage() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 3.5a2.121 2.121 0 013 3L8 18l-5 1 1-5L16.5 3.5z" />
             <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l4 4" />
           </ActionBtn>
-          {/* Save */}
-          <ActionBtn onClick={() => displayRef.current?.download()} title="Save as image" color={isDark ? "#90ee90" : "#1b7a3e"}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-          </ActionBtn>
-
           <Sep isDark={isDark} />
 
           {/* Bookmark */}
@@ -330,7 +325,6 @@ export default function TracerPage() {
               onToggleText={() => setShowText(v => !v)}
               onUndo={() => displayRef.current?.undo()}
               onClear={() => displayRef.current?.clear()}
-              onDownload={() => displayRef.current?.download()}
               isDark={isDark}
               onToggleDark={() => setIsDark(v => !v)}
               compact
