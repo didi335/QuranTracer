@@ -21,9 +21,9 @@ interface SurahDisplayProps {
 }
 
 export interface SurahDisplayHandle {
-  undo:  () => void;
-  redo:  () => void;
-  clear: () => void;
+  undo:     () => void;
+  clear:    () => void;
+  download: () => void;
 }
 
 /* ── QPC font CDN ─────────────────────────────────────────── */
@@ -50,7 +50,7 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
 
     const {
       canvasRef, startDrawing, draw, stopDrawing,
-      undo, redo, clear, clearHistory, getCanvasPoint, isDrawing,
+      undo, clear, clearHistory, downloadAsImage, getCanvasPoint, isDrawing,
     } = useCanvas(penSettings, dummyRef);
 
     /* ── All pages in current surah ──────────────────────────── */
@@ -110,31 +110,22 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
       if (snapshot && ctx) ctx.drawImage(snapshot, 0, 0);
     }, [canvasRef]);
 
-    /* Re-sync whenever the content div resizes (pages/fonts loading in).
-       Wrapped in rAF to avoid "ResizeObserver loop" warnings. */
+    /* Re-sync whenever the content div resizes (pages/fonts loading in) */
     useEffect(() => {
       const el = contentRef.current;
       if (!el) return;
-      let frame = 0;
-      const ro = new ResizeObserver(() => {
-        cancelAnimationFrame(frame);
-        frame = requestAnimationFrame(syncCanvas);
-      });
+      const ro = new ResizeObserver(syncCanvas);
       ro.observe(el);
-      return () => { cancelAnimationFrame(frame); ro.disconnect(); };
+      return () => ro.disconnect();
     }, [syncCanvas]);
 
     /* Also re-sync on outer container width change */
     useEffect(() => {
       const el = outerRef.current;
       if (!el) return;
-      let frame = 0;
-      const ro = new ResizeObserver(() => {
-        cancelAnimationFrame(frame);
-        frame = requestAnimationFrame(syncCanvas);
-      });
+      const ro = new ResizeObserver(syncCanvas);
       ro.observe(el);
-      return () => { cancelAnimationFrame(frame); ro.disconnect(); };
+      return () => ro.disconnect();
     }, [syncCanvas]);
 
     useEffect(() => {
@@ -200,7 +191,15 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
       }
     }, [currentPage]);
 
-    useImperativeHandle(ref, () => ({ undo, redo, clear }));
+    useImperativeHandle(ref, () => ({
+      undo,
+      clear,
+      download: () => downloadAsImage(
+        { current: outerRef.current } as React.RefObject<HTMLElement>,
+        showText,
+        `quran-page-${currentPage}`,
+      ),
+    }));
 
     /* ── Drawing: native pointer listeners (passive: false) ──────
        Attaching natively (instead of via React's synthetic handlers)
@@ -470,25 +469,26 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
                 </div>
               </div>
 
-              {/* Bismillah — large sweeping calligraphic style */}
+              {/* Bismillah — large calligraphic style like quran.com */}
               {chapter.bismillah_pre && chapter.id !== 9 && (
                 <div style={{
-                  display: "flex", justifyContent: "center", alignItems: "center",
-                  padding: "clamp(2rem, 5vw, 4rem) 5%",
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: "1.25rem",
+                  padding: "clamp(2.5rem, 5vw, 4rem) 5% clamp(2.5rem, 5vw, 4rem)",
                 }}>
+                  <div style={{ flex: 1, maxWidth: "12%", height: 1, background: dividerColor, opacity: 0.6, transform: "translateY(0.08em)" }} />
                   <div style={{
                     fontFamily: '"Amiri Quran", "Amiri", serif',
-                    fontSize: "clamp(44px, 7vw, 84px)",
+                    fontSize: "clamp(32px, 4vw, 45px)",
                     fontWeight: 400,
                     color: accentColor,
                     textAlign: "center",
                     direction: "rtl",
-                    lineHeight: 1.4,
-                    letterSpacing: "0.01em",
-                    maxWidth: "100%",
+                    lineHeight: 1.1,
+                    flexShrink: 0,
                   }}>
                     بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ
                   </div>
+                  <div style={{ flex: 1, maxWidth: "12%", height: 1, background: dividerColor, opacity: 0.6, transform: "translateY(0.08em)" }} />
                 </div>
               )}
             </div>

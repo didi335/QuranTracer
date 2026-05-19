@@ -180,7 +180,7 @@ export default function TracerPage() {
       {/* ── MAIN AREA ── */}
       <main className="flex-1 min-w-0 p-2 sm:p-3 relative" onClick={() => { if (leftOpen || rightOpen) closeAll(); }}>
         <div
-          className={`w-full h-full rounded-2xl overflow-hidden border shadow-inner relative ${isDark ? "bg-[#12122a] border-[#2a2a4e]" : "bg-[#fefdf8] border-[#d8d3c0]"}`}
+          className={`w-full h-full rounded-2xl overflow-hidden border shadow-inner ${isDark ? "bg-[#12122a] border-[#2a2a4e]" : "bg-[#fefdf8] border-[#d8d3c0]"}`}
           onClick={(e) => e.stopPropagation()}
         >
           <SurahDisplay
@@ -197,38 +197,6 @@ export default function TracerPage() {
             surahRange={quran.surahRange}
             selectedChapterId={quran.selectedChapterId}
           />
-
-          {/* Loading / error fallback — shows when no surah data is ready */}
-          {(quran.chapters.length === 0 || !quran.surahRange || quran.getVerses(quran.currentPage).length === 0) && (
-            <div
-              className="absolute inset-0 flex flex-col items-center justify-center gap-3 pointer-events-none"
-              style={{ background: isDark ? "#12122a" : "#fefdf8" }}
-            >
-              {quran.error ? (
-                <>
-                  <div className="text-base font-semibold" style={{ color: accent }}>
-                    Could not load the Quran
-                  </div>
-                  <div className="text-sm max-w-md text-center px-6" style={{ color: iconColor }}>
-                    {quran.error}
-                  </div>
-                  <div className="text-xs max-w-md text-center px-6" style={{ color: iconColor, opacity: 0.7 }}>
-                    Please check your connection and refresh the page.
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div
-                    className="w-8 h-8 rounded-full border-2 animate-spin"
-                    style={{ borderColor: `${accent} transparent ${accent} ${accent}` }}
-                  />
-                  <div className="text-sm font-medium" style={{ color: accent }}>
-                    Loading Quran…
-                  </div>
-                </>
-              )}
-            </div>
-          )}
         </div>
 
         {/* Floating action bar */}
@@ -302,10 +270,16 @@ export default function TracerPage() {
           <ActionBtn onClick={() => displayRef.current?.undo()} title="Undo" color={iconColor}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
           </ActionBtn>
-          {/* Redo */}
-          <ActionBtn onClick={() => displayRef.current?.redo()} title="Redo" color={iconColor}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M21 10H11a8 8 0 00-8 8v2M21 10l-6 6m6-6l-6-6" />
+          {/* Eraser */}
+          <ActionBtn onClick={() => displayRef.current?.clear()} title="Eraser" color={isDark ? "#ff9999" : "#c0392b"}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 3.5a2.121 2.121 0 013 3L8 18l-5 1 1-5L16.5 3.5z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l4 4" />
           </ActionBtn>
+          {/* Save */}
+          <ActionBtn onClick={() => displayRef.current?.download()} title="Save as image" color={isDark ? "#90ee90" : "#1b7a3e"}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          </ActionBtn>
+
           <Sep isDark={isDark} />
 
           {/* Bookmark */}
@@ -356,6 +330,7 @@ export default function TracerPage() {
               onToggleText={() => setShowText(v => !v)}
               onUndo={() => displayRef.current?.undo()}
               onClear={() => displayRef.current?.clear()}
+              onDownload={() => displayRef.current?.download()}
               isDark={isDark}
               onToggleDark={() => setIsDark(v => !v)}
               compact

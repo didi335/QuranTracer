@@ -18,7 +18,6 @@ export function useCanvas(penSettings: PenSettings, containerRef: RefObject<HTML
   const isDrawing    = useRef(false);
   const lastPoint    = useRef<Point | null>(null);
   const history      = useRef<ImageData[]>([]);
-  const redoStack    = useRef<ImageData[]>([]);
   const MAX_HISTORY  = 50;
 
   /* Committed-state approach — eliminates per-segment opacity overlap */
@@ -56,7 +55,6 @@ export function useCanvas(penSettings: PenSettings, containerRef: RefObject<HTML
   const startDrawing = useCallback(
     (point: Point) => {
       saveToHistory();
-      redoStack.current           = []; // new action invalidates redo
       isDrawing.current           = true;
       lastPoint.current           = point;
       currentStrokePoints.current = [point];
@@ -154,24 +152,11 @@ export function useCanvas(penSettings: PenSettings, containerRef: RefObject<HTML
     const ctx    = getContext();
     const canvas = canvasRef.current;
     if (!ctx || !canvas) return;
-    if (history.current.length === 0) return;
-    // Snapshot current canvas onto redo stack so we can come back to it
-    const current = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    redoStack.current.push(current);
-    if (redoStack.current.length > MAX_HISTORY) redoStack.current.shift();
+    if (history.current.length === 0) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      return;
+    }
     ctx.putImageData(history.current.pop()!, 0, 0);
-  }, [getContext]);
-
-  const redo = useCallback(() => {
-    const ctx    = getContext();
-    const canvas = canvasRef.current;
-    if (!ctx || !canvas) return;
-    if (redoStack.current.length === 0) return;
-    // Snapshot current canvas back onto history so undo still works
-    const current = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    history.current.push(current);
-    if (history.current.length > MAX_HISTORY) history.current.shift();
-    ctx.putImageData(redoStack.current.pop()!, 0, 0);
   }, [getContext]);
 
   const clear = useCallback(() => {
@@ -179,13 +164,11 @@ export function useCanvas(penSettings: PenSettings, containerRef: RefObject<HTML
     const canvas = canvasRef.current;
     if (!ctx || !canvas) return;
     saveToHistory();
-    redoStack.current = []; // clear is a new action
     ctx.clearRect(0, 0, canvas.width, canvas.height);
   }, [getContext, saveToHistory]);
 
   const clearHistory = useCallback(() => {
-    history.current   = [];
-    redoStack.current = [];
+    history.current = [];
     const ctx    = getContext();
     const canvas = canvasRef.current;
     if (ctx && canvas) ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -214,7 +197,7 @@ export function useCanvas(penSettings: PenSettings, containerRef: RefObject<HTML
 
   return {
     canvasRef, startDrawing, draw, stopDrawing,
-    undo, redo, clear, clearHistory, downloadAsImage,
+    undo, clear, clearHistory, downloadAsImage,
     getCanvasPoint, isDrawing,
   };
 }
