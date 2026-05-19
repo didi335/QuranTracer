@@ -242,8 +242,9 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
         }
       };
 
-      const onUp     = () => { stopDrawing(); };
-      const onCancel = () => { stopDrawing(); };
+      const onUp     = () => { if (isDrawing.current) stopDrawing(); };
+      const onCancel = () => { if (isDrawing.current) stopDrawing(); };
+      const onBlur   = () => { if (isDrawing.current) stopDrawing(); };
 
       const opts: AddEventListenerOptions = { passive: false };
       el.addEventListener("pointerdown",   onDown,   opts);
@@ -251,6 +252,13 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
       el.addEventListener("pointerup",     onUp,     opts);
       el.addEventListener("pointerleave",  onUp,     opts);
       el.addEventListener("pointercancel", onCancel, opts);
+      /* Window-level safety net: if the user releases the mouse outside
+         the scroll container (e.g. over the floating toolbar) the
+         pointerup on `el` may never fire — catch it here. Also stop
+         drawing when the window loses focus. */
+      window.addEventListener("pointerup",     onUp);
+      window.addEventListener("pointercancel", onCancel);
+      window.addEventListener("blur",          onBlur);
 
       return () => {
         el.removeEventListener("pointerdown",   onDown);
@@ -258,6 +266,9 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
         el.removeEventListener("pointerup",     onUp);
         el.removeEventListener("pointerleave",  onUp);
         el.removeEventListener("pointercancel", onCancel);
+        window.removeEventListener("pointerup",     onUp);
+        window.removeEventListener("pointercancel", onCancel);
+        window.removeEventListener("blur",          onBlur);
       };
     }, [startDrawing, draw, stopDrawing, getCanvasPoint, isDrawing]);
 
