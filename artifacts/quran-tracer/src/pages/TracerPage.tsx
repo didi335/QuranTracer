@@ -173,6 +173,7 @@ export default function TracerPage() {
 
         {/* Floating action bar */}
         <div
+          onClick={(e) => e.stopPropagation()}
           className="absolute top-5 left-1/2 -translate-x-1/2 flex items-center gap-1 px-2.5 py-1.5 rounded-full shadow-md border pointer-events-auto"
           style={{
             background:   isDark ? "rgba(20,20,42,0.92)" : "rgba(255,253,248,0.92)",
