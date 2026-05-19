@@ -41,15 +41,9 @@ export function SurahNav({
         <div className="pb-3 border-b" style={{ borderColor: isDark ? "#2a2a4e" : "#e8e3d5" }}>
           <p className={`text-xs font-semibold uppercase tracking-wider mb-1.5 ${mutedText}`}>Current</p>
           <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0 flex-1">
-              <p className={`text-sm font-bold ${goldText}`}>
-                {currentChapter.id}. {currentChapter.name_simple}
-              </p>
-              <p className={`text-xs mt-0.5 ${mutedText}`}>
-                {currentChapter.translated_name.name} · {currentChapter.verses_count} ayahs ·{" "}
-                <span className="capitalize">{currentChapter.revelation_place}</span>
-              </p>
-            </div>
+            <p className={`text-sm font-bold ${goldText}`}>
+              {currentChapter.id}. {currentChapter.name_simple}
+            </p>
             <p
               dir="rtl"
               className="flex-shrink-0 leading-none"
@@ -58,6 +52,10 @@ export function SurahNav({
               {currentChapter.name_arabic}
             </p>
           </div>
+          <p className={`text-xs mt-1 ${mutedText}`}>
+            {currentChapter.translated_name.name} · {currentChapter.verses_count} ayahs ·{" "}
+            <span className="capitalize">{currentChapter.revelation_place}</span>
+          </p>
         </div>
       )}
 
