@@ -25,6 +25,17 @@ export interface QuranState {
   selectChapter:     (chapter: Chapter) => void;
 }
 
+const SAVED_SURAH_KEY = "quran-tracer:lastSurah";
+
+function getSavedSurahId(): number {
+  try {
+    const raw = localStorage.getItem(SAVED_SURAH_KEY);
+    const n = raw ? parseInt(raw, 10) : NaN;
+    if (Number.isFinite(n) && n >= 1 && n <= 114) return n;
+  } catch { /* ignore */ }
+  return 1;
+}
+
 export function useQuran(): QuranState {
   const [chapters,          setChapters]          = useState<Chapter[]>([]);
   const [currentPage,       setCurrentPage]       = useState(1);
@@ -78,24 +89,30 @@ export function useQuran(): QuranState {
 
   /** Bootstrap */
   useEffect(() => {
+    const savedId = getSavedSurahId();
     fetchChapters()
       .then((chs) => {
         setChapters(chs);
-        setSelectedChapterId(1);
-        fetchChapterFirstPage(1).then((startPage) => {
-          fetchChapterFirstPage(2).then((nextStart) => {
-            const endPage = Math.max(startPage, nextStart - 1);
+        setSelectedChapterId(savedId);
+        fetchChapterFirstPage(savedId).then((startPage) => {
+          const nextFetch = savedId < 114
+            ? fetchChapterFirstPage(savedId + 1).then(ns => Math.max(startPage, ns - 1))
+            : Promise.resolve(TOTAL_PAGES);
+          nextFetch.then((endPage) => {
             setSurahRange({ start: startPage, end: endPage });
             fetchRange(startPage, endPage);
+            setCurrentPage(startPage);
+            loadAround(startPage);
           }).catch(() => {
             setSurahRange({ start: startPage, end: startPage });
             fetchRange(startPage, startPage);
+            setCurrentPage(startPage);
+            loadAround(startPage);
           });
         }).catch(() => {});
       })
       .catch((e) => setError(e.message));
 
-    loadAround(1);
     setLoading(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -119,6 +136,7 @@ export function useQuran(): QuranState {
   const selectChapter = useCallback((chapter: Chapter) => {
     setLoading(true);
     setSelectedChapterId(chapter.id);
+    try { localStorage.setItem(SAVED_SURAH_KEY, String(chapter.id)); } catch { /* ignore */ }
     fetchChapterFirstPage(chapter.id)
       .then(async (startPage) => {
         let endPage = TOTAL_PAGES;

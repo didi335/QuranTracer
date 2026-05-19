@@ -1,0 +1,135 @@
+Fix the remaining UI and state management issues in the Quran tracing app. The tracing system is now mostly working, but there are still several important usability bugs that need to be fixed.
+
+========================
+1. FIX PEN SETTINGS BUTTON
+========================
+
+Current issue:
+- The pen/settings button at the top does not work properly
+- Clicking it does not open the pen settings panel/tool
+
+Fix:
+- Ensure the button correctly opens and closes the pen settings menu
+- Verify the click/tap handler is connected properly
+- Ensure the button works on:
+   - iPad
+   - Desktop/laptop
+   - Mobile
+
+Requirements:
+✅ Button opens settings  
+✅ Button closes settings  
+✅ No lag  
+✅ Works consistently  
+
+========================
+2. FIX QURAN TEXT DISAPPEARING
+========================
+
+Current issue:
+- When opening the pen settings panel, the Quran text disappears
+- This should NEVER happen
+
+Fix:
+- Opening settings should NOT hide, rerender, or remove Quran content
+- Keep the Quran text fully visible while settings are open
+
+Likely issue:
+- Incorrect conditional rendering
+- Z-index/layer issue
+- State update causing content remount
+
+Requirements:
+✅ Quran text always visible  
+✅ Settings overlay does not remove content  
+✅ Tracing canvas stays aligned  
+✅ No flashing/reloading  
+
+========================
+3. INCREASE QURAN TEXT SIZE AGAIN
+========================
+
+Current issue:
+- Quran text is still too small for comfortable tracing
+
+Fix:
+- Increase Arabic text size further, especially on iPad
+- Increase line spacing slightly
+- Increase usable tracing width
+
+The text should feel:
+- Large
+- Comfortable
+- Easy to trace
+- Similar to a real tracing workbook
+
+Example:
+font-size: clamp(44px, 5.5vw, 72px);
+
+Requirements:
+✅ Larger Arabic text  
+✅ Better tracing comfort  
+✅ Proper spacing maintained  
+✅ No clipping/cut-off letters  
+
+========================
+4. SAVE CURRENT SURAH STATE
+========================
+
+Current issue:
+- Reloading the page always resets back to Al-Fatiha
+- The app should remember the current Surah
+
+Fix:
+Persist the current Surah selection using:
+- localStorage
+OR
+- app state persistence
+
+Behavior:
+- When user reloads:
+   - Stay on current Surah
+   - Preserve current page/position if possible
+
+Requirements:
+✅ Current Surah saved  
+✅ Reload restores same Surah  
+✅ No forced reset to Fatiha  
+✅ Smooth restore experience  
+
+========================
+5. KEEP CURRENT LAYOUT
+========================
+
+The current overall layout is now good.
+
+DO NOT:
+- Redesign the UI
+- Shrink the Quran text
+- Add clutter
+- Move major layout sections
+
+Only fix:
+- Pen settings button
+- Quran disappearing bug
+- Text sizing
+- State persistence
+
+========================
+6. FINAL QA TEST
+========================
+
+Confirm ALL work correctly:
+
+✅ Pen button opens settings  
+✅ Pen button closes settings  
+✅ Quran text stays visible  
+✅ Tracing still works  
+✅ Larger Quran text  
+✅ Comfortable tracing size  
+✅ Reload keeps same Surah  
+✅ No reset to Fatiha  
+✅ No layout breaking  
+✅ No UI flashing  
+
+The app should now feel stable, polished, and consistent across reloads and settings interactions.

@@ -11,7 +11,7 @@ import { TOTAL_PAGES } from "@/services/quranApi";
 
 const PANEL_WIDTH = 288;
 const panelWidthCss = `min(${PANEL_WIDTH}px, calc(100vw - 56px))`;
-const rightPanelWidthCss = `min(${PANEL_WIDTH}px, 100vw)`;
+const rightPanelWidthCss = `min(${PANEL_WIDTH}px, calc(100vw - 56px))`;
 
 type LeftTab = "surahs" | "bookmarks";
 
