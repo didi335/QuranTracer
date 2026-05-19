@@ -180,7 +180,7 @@ export default function TracerPage() {
       {/* ── MAIN AREA ── */}
       <main className="flex-1 min-w-0 p-2 sm:p-3 relative" onClick={() => { if (leftOpen || rightOpen) closeAll(); }}>
         <div
-          className={`w-full h-full rounded-2xl overflow-hidden border shadow-inner ${isDark ? "bg-[#12122a] border-[#2a2a4e]" : "bg-[#fefdf8] border-[#d8d3c0]"}`}
+          className={`w-full h-full rounded-2xl overflow-hidden border shadow-inner relative ${isDark ? "bg-[#12122a] border-[#2a2a4e]" : "bg-[#fefdf8] border-[#d8d3c0]"}`}
           onClick={(e) => e.stopPropagation()}
         >
           <SurahDisplay
@@ -197,6 +197,38 @@ export default function TracerPage() {
             surahRange={quran.surahRange}
             selectedChapterId={quran.selectedChapterId}
           />
+
+          {/* Loading / error fallback — shows when no surah data is ready */}
+          {quran.chapters.length === 0 && (
+            <div
+              className="absolute inset-0 flex flex-col items-center justify-center gap-3 pointer-events-none"
+              style={{ background: isDark ? "#12122a" : "#fefdf8" }}
+            >
+              {quran.error ? (
+                <>
+                  <div className="text-base font-semibold" style={{ color: accent }}>
+                    Could not load the Quran
+                  </div>
+                  <div className="text-sm max-w-md text-center px-6" style={{ color: iconColor }}>
+                    {quran.error}
+                  </div>
+                  <div className="text-xs max-w-md text-center px-6" style={{ color: iconColor, opacity: 0.7 }}>
+                    Please check your connection and refresh the page.
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div
+                    className="w-8 h-8 rounded-full border-2 animate-spin"
+                    style={{ borderColor: `${accent} transparent ${accent} ${accent}` }}
+                  />
+                  <div className="text-sm font-medium" style={{ color: accent }}>
+                    Loading Quran…
+                  </div>
+                </>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Floating action bar */}
