@@ -40,14 +40,13 @@ export function SurahNav({
       {currentChapter && (
         <div className="pb-3 border-b" style={{ borderColor: isDark ? "#2a2a4e" : "#e8e3d5" }}>
           <p className={`text-xs font-semibold uppercase tracking-wider mb-1.5 ${mutedText}`}>Current</p>
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex items-baseline gap-2 flex-wrap">
             <p className={`text-sm font-bold ${goldText}`}>
               {currentChapter.id}. {currentChapter.name_simple}
             </p>
             <p
               dir="rtl"
-              className="flex-shrink-0 leading-none"
-              style={{ fontFamily: '"Amiri Quran", "Scheherazade New", "Amiri", serif', fontSize: "1.5rem", color: isDark ? "#d4af37" : "#1a5276" }}
+              style={{ fontFamily: '"Amiri Quran", "Scheherazade New", "Amiri", serif', fontSize: "1.25rem", lineHeight: 1, color: isDark ? "#d4af37" : "#1a5276" }}
             >
               {currentChapter.name_arabic}
             </p>
@@ -89,9 +88,9 @@ export function SurahNav({
                 currentChapter?.id === ch.id ? activeBg : rowHover
               }`}
             >
-              <div className="flex items-center justify-between gap-2">
+              <div className="flex items-baseline gap-2 flex-wrap">
                 <span className="font-semibold">{ch.id}. {ch.name_simple}</span>
-                <span dir="rtl" style={{ fontFamily: '"Amiri Quran", "Scheherazade New", "Amiri", serif', fontSize: "1rem", flexShrink: 0 }}>
+                <span dir="rtl" style={{ fontFamily: '"Amiri Quran", "Scheherazade New", "Amiri", serif', fontSize: "1.05rem", lineHeight: 1 }}>
                   {ch.name_arabic}
                 </span>
               </div>
