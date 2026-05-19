@@ -213,10 +213,11 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
           return;
         }
 
-        /* Mouse: require a real button press (left/middle/right). Without
-           this gate, a synthesized pointerdown with no button can start
-           a ghost stroke that never receives a pointerup. */
+        /* Mouse: only draws when Draw Mode is ON AND a real button is
+           pressed. With Draw Mode OFF, mouse clicks do nothing (matches
+           finger behavior) so the user can scroll/select freely. */
         if (e.pointerType === "mouse") {
+          if (!drawModeRef.current) return;
           if (e.buttons === 0 || e.button < 0) return;
           e.preventDefault();
           startDrawing(getCanvasPoint(e.clientX, e.clientY, 0.5));
