@@ -199,7 +199,7 @@ export default function TracerPage() {
           />
 
           {/* Loading / error fallback — shows when no surah data is ready */}
-          {quran.chapters.length === 0 && (
+          {(quran.chapters.length === 0 || !quran.surahRange || quran.getVerses(quran.currentPage).length === 0) && (
             <div
               className="absolute inset-0 flex flex-col items-center justify-center gap-3 pointer-events-none"
               style={{ background: isDark ? "#12122a" : "#fefdf8" }}
