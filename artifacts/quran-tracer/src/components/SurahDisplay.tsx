@@ -255,20 +255,45 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
     useEffect(() => {
       const el = scrollRef.current;
       if (!el) return;
-      const prevent = (e: TouchEvent) => {
+      const prevent = (e: Event) => {
         if (drawMode || isDrawing.current) e.preventDefault();
       };
       el.addEventListener("touchstart",  prevent, { passive: false });
       el.addEventListener("touchmove",   prevent, { passive: false });
       el.addEventListener("touchend",    prevent, { passive: false });
       el.addEventListener("touchcancel", prevent, { passive: false });
+      /* Safari-only gesture events fire for any 2-finger pinch/zoom and
+         can fire pointercancel on the active stroke. Block them. */
+      el.addEventListener("gesturestart",  prevent as EventListener, { passive: false });
+      el.addEventListener("gesturechange", prevent as EventListener, { passive: false });
+      el.addEventListener("gestureend",    prevent as EventListener, { passive: false });
+      /* Long-press context menu can also cancel strokes */
+      el.addEventListener("contextmenu", prevent, { passive: false });
       return () => {
         el.removeEventListener("touchstart",  prevent);
         el.removeEventListener("touchmove",   prevent);
         el.removeEventListener("touchend",    prevent);
         el.removeEventListener("touchcancel", prevent);
+        el.removeEventListener("gesturestart",  prevent as EventListener);
+        el.removeEventListener("gesturechange", prevent as EventListener);
+        el.removeEventListener("gestureend",    prevent as EventListener);
+        el.removeEventListener("contextmenu", prevent);
       };
     }, [isDrawing, drawMode]);
+
+    /* While Draw Mode is on, lock the document so iOS rubber-band bounce
+       can't fire and interrupt strokes. */
+    useEffect(() => {
+      if (!drawMode) return;
+      const prevBody = document.body.style.overscrollBehavior;
+      const prevHtml = document.documentElement.style.overscrollBehavior;
+      document.body.style.overscrollBehavior = "none";
+      document.documentElement.style.overscrollBehavior = "none";
+      return () => {
+        document.body.style.overscrollBehavior = prevBody;
+        document.documentElement.style.overscrollBehavior = prevHtml;
+      };
+    }, [drawMode]);
 
     /* ── Keyboard navigation ─────────────────────────────────── */
     const onPageChangeRef = useRef(onPageChange);
