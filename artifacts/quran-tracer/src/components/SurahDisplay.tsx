@@ -646,7 +646,7 @@ function PageSection({
     return result;
   }, [filteredVerses, chapterMap]);
 
-  const textColor  = isDark ? "rgba(220,210,185,0.40)" : "rgba(26,26,46,0.40)";
+  const textColor  = isDark ? "rgba(220,210,185,0.60)" : "rgba(26,26,46,0.60)";
   const fontFamily = `"QPC_P${page}", "Amiri Quran", serif`;
   const opacity    = showText ? 1 : 0;
   const transition = "opacity 0.2s ease";
