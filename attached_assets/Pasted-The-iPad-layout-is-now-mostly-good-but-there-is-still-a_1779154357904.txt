@@ -1,0 +1,135 @@
+The iPad layout is now mostly good, but there is still a major issue with tracing vs scrolling behavior. Right now the app cannot properly tell whether the user is trying to scroll or trying to trace.
+
+Fix this completely for iPad.
+
+========================
+1. SEPARATE SCROLLING VS TRACING
+========================
+
+Current issue:
+- When trying to trace, the app scrolls
+- When trying to scroll, tracing interferes
+- Finger and Apple Pencil behavior conflict
+
+The app must intelligently separate:
+- Scrolling gestures
+- Drawing gestures
+
+========================
+2. APPLE PENCIL BEHAVIOR
+========================
+
+Apple Pencil should ALWAYS draw.
+
+Requirements:
+- Pencil touch instantly starts tracing
+- Pencil should NEVER trigger page scrolling
+- Smooth low-latency strokes
+- No gaps
+- No accidental scrolling while drawing
+
+Implementation:
+- Detect:
+   pointerType === "pen"
+
+When Apple Pencil is active:
+- Disable scrolling temporarily
+- Enable drawing only
+
+When Pencil lifts:
+- Re-enable scrolling
+
+========================
+3. FINGER BEHAVIOR
+========================
+
+Finger should support BOTH:
+- Scrolling
+- Drawing
+
+Solution:
+Create a dedicated “Draw Mode” toggle.
+
+Behavior:
+- Draw Mode OFF:
+   - Finger = scroll only
+
+- Draw Mode ON:
+   - Finger = draw only
+
+This prevents conflicts between tracing and scrolling.
+
+IMPORTANT:
+- Apple Pencil should still always draw regardless of Draw Mode.
+
+========================
+4. IMPROVE IPAD TRACING EXPERIENCE
+========================
+
+The Quran text is still too small for comfortable tracing on iPad.
+
+Fix:
+- Increase Quran text size specifically for iPad
+- Increase line spacing slightly
+- Increase tracing area width
+
+The text should feel:
+- Large
+- Comfortable
+- Easy to trace with Apple Pencil
+
+Use responsive iPad scaling.
+
+Example:
+font-size: clamp(40px, 5vw, 64px);
+
+========================
+5. DRAWING QUALITY
+========================
+
+Improve tracing quality:
+- Smooth strokes
+- No broken lines
+- Stroke stabilization
+- Pressure sensitivity if available
+- Continuous curves
+
+Use:
+- requestAnimationFrame if needed
+- Point interpolation/smoothing
+
+========================
+6. TOUCH EVENT HANDLING
+========================
+
+Fix touch handling properly.
+
+Use:
+- pointerdown
+- pointermove
+- pointerup
+- pointercancel
+
+Ensure:
+- Canvas only captures events while drawing
+- Scroll container works normally otherwise
+
+DO NOT permanently disable scrolling.
+
+========================
+7. FINAL IPAD TEST
+========================
+
+Confirm ALL work correctly:
+
+✅ Apple Pencil tracing  
+✅ Finger scrolling  
+✅ Finger tracing in Draw Mode  
+✅ Smooth scrolling  
+✅ Smooth tracing  
+✅ No accidental scrolling while drawing  
+✅ No accidental drawing while scrolling  
+✅ Larger Quran text on iPad  
+✅ Easier tracing experience  
+
+The iPad experience should feel smooth, natural, and optimized specifically for Quran tracing with Apple Pencil.
