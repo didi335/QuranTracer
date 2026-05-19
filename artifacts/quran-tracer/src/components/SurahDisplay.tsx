@@ -469,34 +469,68 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
                 </div>
               </div>
 
-              {/* Bismillah — gentle calligraphic style */}
+              {/* Bismillah — fancy ornamental style */}
               {chapter.bismillah_pre && chapter.id !== 9 && (
                 <div style={{
-                  display: "flex", alignItems: "center", justifyContent: "center", gap: "1.75rem",
+                  position: "relative",
+                  display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
                   padding: "clamp(2.25rem, 4.5vw, 3.5rem) 5% clamp(2.5rem, 5vw, 4rem)",
+                  gap: "0.85rem",
                 }}>
+                  {/* Top ornament */}
+                  <svg viewBox="0 0 200 14" preserveAspectRatio="none" style={{ width: "min(60%, 320px)", height: 14, opacity: 0.75, color: accentColor }} fill="none" stroke="currentColor" strokeWidth={1}>
+                    <path d="M 0 7 L 80 7" />
+                    <path d="M 120 7 L 200 7" />
+                    <path d="M 100 7 m -6 0 a 6 6 0 1 0 12 0 a 6 6 0 1 0 -12 0" />
+                    <path d="M 100 3 L 100 11 M 96 7 L 104 7" strokeWidth={0.8} />
+                    <circle cx="80"  cy="7" r="1.4" fill="currentColor" stroke="none" />
+                    <circle cx="120" cy="7" r="1.4" fill="currentColor" stroke="none" />
+                  </svg>
+
+                  {/* Calligraphic Bismillah with side flourishes */}
                   <div style={{
-                    flex: 1, maxWidth: "18%", height: 1,
-                    background: `linear-gradient(to right, transparent, ${dividerColor} 70%, ${dividerColor})`,
-                    opacity: 0.55, transform: "translateY(0.1em)",
-                  }} />
-                  <div style={{
-                    fontFamily: '"Amiri Quran", "Amiri", serif',
-                    fontSize: "clamp(34px, 4.4vw, 50px)",
-                    fontWeight: 400,
-                    color: accentColor,
-                    textAlign: "center",
-                    direction: "rtl",
-                    lineHeight: 1.55,
-                    paddingBottom: "0.15em",
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: "1.5rem", width: "100%",
                   }}>
-                    بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ
+                    <div style={{
+                      flex: 1, maxWidth: "16%", height: 1,
+                      background: `linear-gradient(to right, transparent, ${accentColor})`,
+                      opacity: 0.4,
+                    }} />
+                    <div style={{
+                      fontFamily: '"Amiri Quran", "Amiri", serif',
+                      fontSize: "clamp(36px, 4.8vw, 56px)",
+                      fontWeight: 400,
+                      textAlign: "center",
+                      direction: "rtl",
+                      lineHeight: 1.55,
+                      paddingBottom: "0.15em",
+                      background: isDark
+                        ? `linear-gradient(180deg, #f4d76a 0%, ${accentColor} 55%, #a8852a 100%)`
+                        : `linear-gradient(180deg, #2a4f8a 0%, ${accentColor} 55%, #0e2a55 100%)`,
+                      WebkitBackgroundClip: "text",
+                      backgroundClip:       "text",
+                      WebkitTextFillColor:  "transparent",
+                      color: "transparent",
+                      textShadow: isDark ? "0 1px 0 rgba(0,0,0,0.25)" : "0 1px 0 rgba(255,255,255,0.4)",
+                    }}>
+                      بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ
+                    </div>
+                    <div style={{
+                      flex: 1, maxWidth: "16%", height: 1,
+                      background: `linear-gradient(to left, transparent, ${accentColor})`,
+                      opacity: 0.4,
+                    }} />
                   </div>
-                  <div style={{
-                    flex: 1, maxWidth: "18%", height: 1,
-                    background: `linear-gradient(to left, transparent, ${dividerColor} 70%, ${dividerColor})`,
-                    opacity: 0.55, transform: "translateY(0.1em)",
-                  }} />
+
+                  {/* Bottom ornament (mirror) */}
+                  <svg viewBox="0 0 200 14" preserveAspectRatio="none" style={{ width: "min(60%, 320px)", height: 14, opacity: 0.75, color: accentColor }} fill="none" stroke="currentColor" strokeWidth={1}>
+                    <path d="M 0 7 L 80 7" />
+                    <path d="M 120 7 L 200 7" />
+                    <path d="M 100 7 m -6 0 a 6 6 0 1 0 12 0 a 6 6 0 1 0 -12 0" />
+                    <circle cx="100" cy="7" r="1.6" fill="currentColor" stroke="none" />
+                    <circle cx="80"  cy="7" r="1.4" fill="currentColor" stroke="none" />
+                    <circle cx="120" cy="7" r="1.4" fill="currentColor" stroke="none" />
+                  </svg>
                 </div>
               )}
             </div>
