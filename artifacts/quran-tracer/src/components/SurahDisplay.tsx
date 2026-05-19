@@ -21,9 +21,9 @@ interface SurahDisplayProps {
 }
 
 export interface SurahDisplayHandle {
-  undo:     () => void;
-  clear:    () => void;
-  download: () => void;
+  undo:  () => void;
+  redo:  () => void;
+  clear: () => void;
 }
 
 /* ── QPC font CDN ─────────────────────────────────────────── */
@@ -50,7 +50,7 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
 
     const {
       canvasRef, startDrawing, draw, stopDrawing,
-      undo, clear, clearHistory, downloadAsImage, getCanvasPoint, isDrawing,
+      undo, redo, clear, clearHistory, getCanvasPoint, isDrawing,
     } = useCanvas(penSettings, dummyRef);
 
     /* ── All pages in current surah ──────────────────────────── */
@@ -191,15 +191,7 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
       }
     }, [currentPage]);
 
-    useImperativeHandle(ref, () => ({
-      undo,
-      clear,
-      download: () => downloadAsImage(
-        { current: outerRef.current } as React.RefObject<HTMLElement>,
-        showText,
-        `quran-page-${currentPage}`,
-      ),
-    }));
+    useImperativeHandle(ref, () => ({ undo, redo, clear }));
 
     /* ── Drawing: native pointer listeners (passive: false) ──────
        Attaching natively (instead of via React's synthetic handlers)
