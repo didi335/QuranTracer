@@ -18,6 +18,7 @@ type LeftTab = "surahs" | "bookmarks";
 export default function TracerPage() {
   const [isDark,           setIsDark]           = useState(false);
   const [showText,         setShowText]         = useState(true);
+  const [drawMode,         setDrawMode]         = useState(false);
   const [leftOpen,         setLeftOpen]         = useState(false);
   const [leftTab,     setLeftTab]     = useState<LeftTab>("surahs");
   const [rightOpen,   setRightOpen]   = useState(false);
@@ -162,6 +163,7 @@ export default function TracerPage() {
             showText={showText}
             penSettings={penSettings}
             isDark={isDark}
+            drawMode={drawMode}
             onPageChange={quran.goToPage}
             onSelectSurah={quran.selectChapter}
             surahRange={quran.surahRange}
@@ -201,6 +203,21 @@ export default function TracerPage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
             </svg>
           </button>
+
+          {/* Draw Mode toggle (finger = draw when ON, scroll when OFF) */}
+          <button
+            onClick={() => setDrawMode(v => !v)}
+            title={drawMode ? "Draw Mode ON (finger draws)" : "Draw Mode OFF (finger scrolls)"}
+            className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
+            style={{ background: drawMode ? accent : "transparent", color: drawMode ? "#fff" : iconColor }}
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+            </svg>
+            <span className="hidden sm:inline">Draw</span>
+          </button>
+
+          <Sep isDark={isDark} />
 
           {/* Show/hide text */}
           <button
