@@ -385,32 +385,33 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
             <div style={{ opacity, transition }}>
               {/* Large calligraphic header */}
               <div style={{
-                display: "flex", alignItems: "center", gap: "1.5rem",
-                padding: "clamp(3.5rem, 5vw, 4.5rem) 5% 2rem",
+                display: "flex", alignItems: "stretch", gap: "1.5rem",
+                padding: "clamp(2rem, 3.5vw, 3rem) 5%",
                 borderBottom: `1px solid ${dividerColor}`,
                 marginBottom: "0.5rem",
               }}>
-                {/* Spacer to vertically balance the Arabic name's descenders/ascenders */}
                 <div style={{
                   fontFamily: '"Amiri Quran", "Amiri", serif',
-                  fontSize: "clamp(52px, 8vw, 96px)",
+                  fontSize: "clamp(40px, 5.5vw, 64px)",
                   color: accentColor,
                   lineHeight: 1,
                   direction: "rtl",
                   flexShrink: 0,
-                  transform: "translateY(-0.12em)",
+                  display: "flex",
+                  alignItems: "center",
+                  paddingBottom: "0.18em",
                 }}>
                   {chapter.name_arabic}
                 </div>
-                <div style={{ width: 1, alignSelf: "stretch", background: dividerColor, flexShrink: 0 }} />
-                <div style={{ display: "flex", flexDirection: "column", gap: "0.15rem" }}>
-                  <div style={{ fontSize: "clamp(18px, 2.2vw, 26px)", fontWeight: 700, color: isDark ? "rgba(220,210,185,0.7)" : "rgba(26,26,46,0.7)", letterSpacing: "-0.01em" }}>
+                <div style={{ width: 1, background: dividerColor, flexShrink: 0 }} />
+                <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", gap: "0.2rem" }}>
+                  <div style={{ fontSize: "clamp(18px, 2.2vw, 26px)", fontWeight: 700, color: isDark ? "rgba(220,210,185,0.85)" : "rgba(26,26,46,0.85)", letterSpacing: "-0.01em", lineHeight: 1.1 }}>
                     {chapter.id}. {chapter.name_simple}
                   </div>
-                  <div style={{ fontSize: "clamp(13px, 1.6vw, 18px)", color: mutedColor, fontWeight: 400 }}>
+                  <div style={{ fontSize: "clamp(13px, 1.6vw, 18px)", color: mutedColor, fontWeight: 400, lineHeight: 1.2 }}>
                     {chapter.translated_name.name}
                   </div>
-                  <div style={{ marginTop: "0.3rem", fontSize: "clamp(11px, 1.2vw, 14px)", color: mutedColor, opacity: 0.7, letterSpacing: "0.06em", textTransform: "uppercase", fontWeight: 500 }}>
+                  <div style={{ marginTop: "0.25rem", fontSize: "clamp(10px, 1.1vw, 13px)", color: mutedColor, opacity: 0.7, letterSpacing: "0.08em", textTransform: "uppercase", fontWeight: 500 }}>
                     {chapter.revelation_place === "makkah" ? "Makki" : "Madani"} · {chapter.verses_count} Ayahs
                   </div>
                 </div>
