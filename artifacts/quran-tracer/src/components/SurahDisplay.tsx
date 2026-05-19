@@ -421,7 +421,7 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
               {chapter.bismillah_pre && chapter.id !== 9 && (
                 <div style={{
                   display: "flex", alignItems: "center", justifyContent: "center", gap: "1rem",
-                  padding: "clamp(1.5rem, 3vw, 2.5rem) 5% clamp(2rem, 4vw, 3rem)",
+                  padding: "clamp(1.5rem, 3vw, 2.5rem) 5% clamp(1.25rem, 2.5vw, 2rem)",
                 }}>
                   <div style={{ flex: 1, maxWidth: "12%", height: 1, background: dividerColor, opacity: 0.6, transform: "translateY(0.08em)" }} />
                   <div style={{
