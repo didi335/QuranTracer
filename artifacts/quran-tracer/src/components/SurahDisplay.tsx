@@ -213,8 +213,19 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
           return;
         }
 
-        /* Pen + mouse: ALWAYS draw */
-        if (e.pointerType === "pen" || e.pointerType === "mouse") {
+        /* Mouse: require a real button press (left/middle/right). Without
+           this gate, a synthesized pointerdown with no button can start
+           a ghost stroke that never receives a pointerup. */
+        if (e.pointerType === "mouse") {
+          if (e.buttons === 0 || e.button < 0) return;
+          e.preventDefault();
+          startDrawing(getCanvasPoint(e.clientX, e.clientY, 0.5));
+          try { el.setPointerCapture(e.pointerId); } catch {}
+          return;
+        }
+
+        /* Pen (Apple Pencil / stylus): always draw */
+        if (e.pointerType === "pen") {
           e.preventDefault();
           startDrawing(getCanvasPoint(e.clientX, e.clientY, e.pressure > 0 ? e.pressure : 0.5));
           try { el.setPointerCapture(e.pointerId); } catch {}
@@ -230,8 +241,14 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
       };
 
       const onMove = (e: PointerEvent) => {
+        /* HARD GATE: a mouse pointer with no buttons held can NEVER draw.
+           Force-stop any in-progress stroke and bail. This catches every
+           ghost-drawing edge case (missed pointerup, lost capture, etc.) */
+        if (e.pointerType === "mouse" && e.buttons === 0) {
+          if (isDrawing.current) stopDrawing();
+          return;
+        }
         if (!isDrawing.current) return;
-        if (e.pointerType === "mouse" && e.buttons === 0) { stopDrawing(); return; }
         e.preventDefault();
         /* getCoalescedEvents() recovers every digitizer sample the OS
            batched between frames — essential for smooth iPad strokes */
