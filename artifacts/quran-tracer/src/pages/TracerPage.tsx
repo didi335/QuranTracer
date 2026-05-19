@@ -57,33 +57,6 @@ export default function TracerPage() {
   return (
     <div className={`flex h-screen w-screen overflow-hidden select-none ${bg}`}>
 
-      {/* ── MOBILE BLOCK SCREEN ── */}
-      <div
-        className="sm:hidden fixed inset-0 flex items-center justify-center p-6"
-        style={{
-          zIndex: 100,
-          background: isDark ? "#0d0d1a" : "#f0ebe0",
-          color:      isDark ? "#e8e3d5" : "#1a1a2e",
-        }}
-      >
-        <div className="flex flex-col items-center gap-5 text-center max-w-sm">
-          <svg className="w-14 h-14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} style={{ color: accent }}>
-            <rect x="3" y="4" width="18" height="13" rx="2" />
-            <path strokeLinecap="round" d="M8 21h8M12 17v4" />
-          </svg>
-          <h1 className="text-xl font-bold" style={{ color: accent }}>
-            Best on iPad or Desktop
-          </h1>
-          <p className="text-sm leading-relaxed" style={{ opacity: 0.85 }}>
-            Quran Tracer is designed for larger screens with Apple Pencil, stylus, or mouse support.
-            Please open this page on an iPad, tablet, or desktop computer for the best tracing experience.
-          </p>
-          <p className="text-xs" style={{ opacity: 0.6 }}>
-            quran-tracer.replit.app
-          </p>
-        </div>
-      </div>
-
 
       {/* ── LEFT PANEL ── */}
       <div className="relative flex-shrink-0 flex" style={{ zIndex: 20 }}>
