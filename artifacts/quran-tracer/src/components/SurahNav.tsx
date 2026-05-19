@@ -88,8 +88,8 @@ export function SurahNav({
                 currentChapter?.id === ch.id ? activeBg : rowHover
               }`}
             >
-              <div className="flex items-baseline gap-2 flex-wrap">
-                <span className="font-semibold">{ch.id}. {ch.name_simple}</span>
+              <div className="grid items-baseline gap-2" style={{ gridTemplateColumns: "8.5rem auto" }}>
+                <span className="font-semibold truncate">{ch.id}. {ch.name_simple}</span>
                 <span dir="rtl" style={{ fontFamily: '"Amiri Quran", "Scheherazade New", "Amiri", serif', fontSize: "1.05rem", lineHeight: 1 }}>
                   {ch.name_arabic}
                 </span>
