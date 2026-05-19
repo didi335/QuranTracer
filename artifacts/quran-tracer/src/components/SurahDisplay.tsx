@@ -324,11 +324,18 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
             position: "absolute", inset: 0,
             overflowY: "auto",
             overflowX: "hidden",
-            WebkitOverflowScrolling: "touch",
+            /* iOS momentum scrolling interferes with pointer events while
+               drawing; disable it in Draw Mode */
+            WebkitOverflowScrolling: drawMode ? "auto" : "touch",
             overscrollBehavior: "contain",
             scrollbarWidth: "thin",
             scrollbarColor: isDark ? "#2a2a4e transparent" : "#d8d3c0 transparent",
             touchAction: drawMode ? "none" : "pan-y",
+            /* Critical for iPad: prevent text-selection long-press from
+               firing pointercancel mid-stroke */
+            userSelect: "none",
+            WebkitUserSelect: "none",
+            WebkitTouchCallout: "none",
           } as React.CSSProperties}
           onScroll={onScroll}
           onPointerDown={onPtrDown}
