@@ -456,26 +456,23 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
                 </div>
               </div>
 
-              {/* Bismillah — large calligraphic style like quran.com */}
+              {/* Bismillah — elegant calligraphic style, no side lines */}
               {chapter.bismillah_pre && chapter.id !== 9 && (
                 <div style={{
-                  display: "flex", alignItems: "center", justifyContent: "center", gap: "1.25rem",
+                  display: "flex", alignItems: "center", justifyContent: "center",
                   padding: "clamp(2.5rem, 5vw, 4rem) 5% clamp(2.5rem, 5vw, 4rem)",
                 }}>
-                  <div style={{ flex: 1, maxWidth: "12%", height: 1, background: dividerColor, opacity: 0.6, transform: "translateY(0.08em)" }} />
                   <div style={{
-                    fontFamily: '"Amiri Quran", "Amiri", serif',
-                    fontSize: "clamp(34px, 5vw, 56px)",
-                    fontWeight: 400,
+                    fontFamily: '"Aref Ruqaa", "Amiri Quran", "Amiri", serif',
+                    fontSize: "clamp(26px, 3.6vw, 42px)",
+                    fontWeight: 700,
                     color: accentColor,
                     textAlign: "center",
                     direction: "rtl",
-                    lineHeight: 1.1,
-                    flexShrink: 0,
+                    lineHeight: 1.4,
                   }}>
                     بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ
                   </div>
-                  <div style={{ flex: 1, maxWidth: "12%", height: 1, background: dividerColor, opacity: 0.6, transform: "translateY(0.08em)" }} />
                 </div>
               )}
             </div>
