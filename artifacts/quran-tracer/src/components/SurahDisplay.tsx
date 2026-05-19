@@ -395,11 +395,10 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
                   fontFamily: '"Amiri Quran", "Amiri", serif',
                   fontSize: "clamp(52px, 8vw, 96px)",
                   color: accentColor,
-                  lineHeight: 1.2,
+                  lineHeight: 1,
                   direction: "rtl",
                   flexShrink: 0,
-                  display: "flex",
-                  alignItems: "center",
+                  transform: "translateY(-0.12em)",
                 }}>
                   {chapter.name_arabic}
                 </div>
