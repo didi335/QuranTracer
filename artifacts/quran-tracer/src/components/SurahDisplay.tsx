@@ -256,15 +256,15 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
         const dx = e.clientX - pt.startX;
         const dy = e.clientY - pt.startY;
         const dist = Math.hypot(dx, dy);
-        /* Vertical-dominant motion → let the browser scroll (it will fire pointercancel) */
-        if (dist > 6 && Math.abs(dy) > Math.abs(dx) * 1.2) {
+        /* Strongly vertical motion → let the browser scroll (it will fire pointercancel) */
+        if (dist > 5 && Math.abs(dy) > Math.abs(dx) * 1.8) {
           /* Don't commit; let pan-y / pointercancel take over */
           pt.decided = true;
           pendingTouch.current = null;
           return;
         }
-        /* Enough motion AND mostly horizontal-ish → commit to drawing */
-        if (dist > 6) {
+        /* Any other motion → commit to drawing (horizontal, diagonal, curves) */
+        if (dist > 3) {
           pt.decided = true;
           e.preventDefault();
           (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);

@@ -1,0 +1,217 @@
+The overall layout of the Quran tracing app is now good. The Quran size, spacing, and page layout are mostly working well. DO NOT redesign the entire app layout.
+
+The MAIN issue now is the tracing system itself.
+
+Right now tracing is broken because:
+- It only traces vertically properly
+- Horizontal movement creates broken or tiny disconnected lines
+- Arabic letters require smooth curved and horizontal strokes
+- Scrolling and tracing are conflicting
+- The tracing experience is not smooth or user-friendly
+
+This needs a full tracing interaction redesign while keeping the current layout clean and simple.
+
+========================
+1. REDESIGN TRACING INTERACTION
+========================
+
+The app needs a dedicated tracing mode system.
+
+Current issue:
+- The app cannot properly distinguish between:
+   - scrolling
+   - tracing
+
+This causes broken strokes and accidental scrolling.
+
+Fix:
+Create a clear “Draw Mode” toggle.
+
+Behavior:
+- Draw Mode OFF:
+   - Finger = scroll only
+   - User can navigate pages normally
+
+- Draw Mode ON:
+   - Finger = trace only
+   - Scrolling disabled while drawing
+
+IMPORTANT:
+- Apple Pencil should ALWAYS draw regardless of Draw Mode.
+
+========================
+2. FIX HORIZONTAL + CURVED STROKES
+========================
+
+Current issue:
+- Tracing only responds properly to vertical movement
+- Horizontal Arabic strokes become dotted or disconnected
+- Curves are jagged
+
+Arabic letters require:
+- Horizontal movement
+- Curved movement
+- Diagonal movement
+- Continuous flowing strokes
+
+Fix the drawing engine completely.
+
+Requirements:
+- Continuous line rendering in ALL directions
+- Proper interpolation between points
+- Bézier curve smoothing
+- High-frequency input sampling
+- No broken segments
+
+The tracing should feel:
+- Smooth
+- Fluid
+- Natural
+- Like real handwriting
+
+========================
+3. IMPROVE STROKE QUALITY
+========================
+
+Requirements:
+- No tiny disconnected marks
+- No jitter
+- No gaps
+- No lag
+- No shaky lines
+
+Add:
+- Stroke stabilization
+- Point smoothing
+- Interpolated curves
+- Pressure sensitivity if available
+
+Arabic tracing should support:
+- Long horizontal strokes
+- Smooth circular motions
+- Thin curves
+- Connected letters
+
+========================
+4. DRAW MODE UI (VERY IMPORTANT)
+========================
+
+The app is intended for younger users.
+
+The tracing controls MUST stay:
+- Clean
+- Minimal
+- Easy to understand
+- Easy to access
+
+DO NOT clutter the interface.
+
+Add:
+- A simple floating “Draw Mode” button/icon
+
+Example:
+- Pencil icon
+- Small toggle button
+
+Behavior:
+- Tap once → Draw Mode ON
+- Tap again → Draw Mode OFF
+
+Visual feedback:
+- Highlight button when active
+
+DO NOT:
+- Add large menus
+- Add complicated settings
+- Ruin the clean layout
+
+========================
+5. KEEP CURRENT LAYOUT
+========================
+
+The current layout is mostly correct now.
+
+DO NOT:
+- Shrink Quran text
+- Add permanent sidebars
+- Compress spacing
+- Move major layout sections
+
+Only improve:
+- Tracing interaction
+- Drawing behavior
+- Touch handling
+
+========================
+6. APPLE PENCIL SUPPORT
+========================
+
+Apple Pencil should:
+- Always draw instantly
+- Ignore scrolling
+- Feel low latency
+- Support smooth curves
+
+Detect:
+pointerType === "pen"
+
+When Pencil is active:
+- Disable scrolling temporarily
+- Prioritize drawing performance
+
+========================
+7. TOUCH EVENT SYSTEM
+========================
+
+Use a proper Pointer Events system:
+- pointerdown
+- pointermove
+- pointerup
+- pointercancel
+
+Ensure:
+- Drawing only happens in Draw Mode
+- Scrolling only happens outside Draw Mode
+- No event conflicts
+
+========================
+8. FINAL EXPERIENCE GOAL
+========================
+
+The final tracing experience should feel:
+- Smooth
+- Natural
+- Calm
+- Beginner-friendly
+- Easy for younger students
+
+The app should feel similar to:
+- A clean handwriting practice app
+- A Quran tracing workbook
+- A polished iPad learning tool
+
+The tracing experience is now the MOST important part of the app.
+
+========================
+9. FINAL QA TEST
+========================
+
+Confirm ALL of these work:
+
+✅ Finger scrolling when Draw Mode OFF  
+✅ Finger tracing when Draw Mode ON  
+✅ Apple Pencil tracing always works  
+✅ Smooth horizontal strokes  
+✅ Smooth curved Arabic tracing  
+✅ No broken lines  
+✅ No dotted strokes  
+✅ No accidental scrolling while tracing  
+✅ No accidental drawing while scrolling  
+✅ Clean simple UI  
+✅ Layout remains unchanged  
+
+Output:
+- Fully redesign tracing interaction system
+- Keep current clean layout
+- Improve Arabic handwriting/tracing quality significantly
+- Ensure beginner-friendly iPad tracing experience
