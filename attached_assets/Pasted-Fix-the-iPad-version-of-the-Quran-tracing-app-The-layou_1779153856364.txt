@@ -1,0 +1,104 @@
+Fix the iPad version of the Quran tracing app. The layout is mostly working now, but there are still 3 major problems that must be fixed.
+
+========================
+1. FIX HEADER ALIGNMENT
+========================
+
+Current issue:
+- The Arabic Surah title in the header is NOT perfectly centered again.
+
+Fix:
+- Center the Arabic title independently from all side buttons/icons.
+- Side icons/buttons should NOT affect the title position.
+
+Implementation:
+- Use a truly centered container:
+   position: absolute;
+   left: 50%;
+   transform: translateX(-50%);
+
+OR:
+- Use flex layout with separate left/right icon containers.
+
+Ensure:
+- Arabic title is mathematically centered
+- English subtitle is also centered beneath it
+- Balanced spacing above and below the title
+
+========================
+2. FIX IPAD SCROLLING
+========================
+
+Current issue:
+- Cannot scroll fully to the bottom of the page
+- The “Next” button is cut off
+- User cannot fully reach the end of the Surah
+
+Fix:
+- Allow full vertical scrolling to the bottom
+- Ensure all content is reachable
+- Add proper bottom padding/margin so the final button is fully visible
+
+Check:
+- Scroll container height
+- overflow settings
+- fixed-position elements blocking content
+
+Ensure:
+✅ Entire Surah can be viewed
+✅ Entire “Next” button visible
+✅ User can scroll naturally to bottom
+
+========================
+3. FIX TRACING ON IPAD
+========================
+
+Current issue:
+- Tracing/drawing is not working on iPad
+
+Fix Apple Pencil + finger tracing.
+
+Requirements:
+- Apple Pencil draws immediately
+- Finger drawing works in Draw Mode
+- Finger scrolling works when Draw Mode is off
+
+Use:
+- Pointer Events API
+- pointerdown
+- pointermove
+- pointerup
+
+Fix:
+- Canvas event handling
+- Touch conflicts
+- Scrolling vs drawing conflicts
+
+Important:
+- Canvas should NOT block scrolling unless actively drawing
+- Disable scrolling ONLY during active drawing
+
+Drawing quality:
+- Smooth strokes
+- No gaps
+- No lag
+- Continuous lines
+
+========================
+4. FINAL IPAD QA
+========================
+
+Confirm all of these work:
+
+✅ Arabic header centered  
+✅ English subtitle centered  
+✅ Full page scroll works  
+✅ Entire “Next” button visible  
+✅ Apple Pencil tracing works  
+✅ Finger tracing works  
+✅ Finger scrolling works  
+✅ Smooth drawing  
+✅ No scrolling lock  
+✅ No overlapping UI  
+
+The iPad experience should feel polished, smooth, and natural for Quran tracing.
