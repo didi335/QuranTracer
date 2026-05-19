@@ -188,64 +188,78 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
       ),
     }));
 
-    /* ── Drawing ─────────────────────────────────────────────── */
-    /* Rules:
-       - pen (Apple Pencil / stylus): ALWAYS draws immediately
-       - mouse (click+drag):          ALWAYS draws immediately
-       - touch (finger):              draws only when Draw Mode is ON,
-                                      otherwise the browser scrolls */
-    const isInteractiveTarget = (e: React.PointerEvent) =>
-      !!(e.target as HTMLElement).closest("button, a, input, select");
+    /* ── Drawing: native pointer listeners (passive: false) ──────
+       Attaching natively (instead of via React's synthetic handlers)
+       guarantees preventDefault() actually fires on iPad Safari and
+       avoids any React event-delegation quirks that can cause
+       broken/dropped pointer events on iOS. */
+    const drawModeRef = useRef(drawMode);
+    useEffect(() => { drawModeRef.current = drawMode; }, [drawMode]);
 
-    const onPtrDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-      if (isInteractiveTarget(e)) return;
+    useEffect(() => {
+      const el = scrollRef.current;
+      if (!el) return;
 
-      /* Second touch while drawing → cancel stroke so pinch-zoom / 2-finger scroll works */
-      if (isDrawing.current && e.pointerType === "touch" && !e.isPrimary) {
-        stopDrawing();
-        return;
-      }
+      const isInteractive = (target: EventTarget | null) =>
+        !!(target as HTMLElement | null)?.closest?.("button, a, input, select");
 
-      if (e.pointerType === "pen" || e.pointerType === "mouse") {
-        e.preventDefault();
-        startDrawing(getCanvasPoint(e.clientX, e.clientY, e.pressure > 0 ? e.pressure : 0.5));
-        (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-        return;
-      }
+      const onDown = (e: PointerEvent) => {
+        if (isInteractive(e.target)) return;
 
-      if (e.pointerType === "touch" && e.isPrimary) {
-        if (drawMode) {
-          /* Draw Mode ON → finger draws immediately */
+        /* Second touch while drawing → end stroke (so 2-finger gestures
+           can never wedge the stroke open) */
+        if (isDrawing.current && e.pointerType === "touch" && !e.isPrimary) {
+          stopDrawing();
+          return;
+        }
+
+        /* Pen + mouse: ALWAYS draw */
+        if (e.pointerType === "pen" || e.pointerType === "mouse") {
+          e.preventDefault();
+          startDrawing(getCanvasPoint(e.clientX, e.clientY, e.pressure > 0 ? e.pressure : 0.5));
+          try { el.setPointerCapture(e.pointerId); } catch {}
+          return;
+        }
+
+        /* Touch (finger): only draws when Draw Mode is ON */
+        if (e.pointerType === "touch" && e.isPrimary && drawModeRef.current) {
           e.preventDefault();
           startDrawing(getCanvasPoint(e.clientX, e.clientY, 0.5));
-          (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+          try { el.setPointerCapture(e.pointerId); } catch {}
         }
-        /* Draw Mode OFF → finger scrolls; do nothing here */
-      }
-    }, [startDrawing, stopDrawing, getCanvasPoint, isDrawing, drawMode]);
+      };
 
-    const onPtrMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-      /* Active stroke → just keep drawing */
-      if (isDrawing.current) {
+      const onMove = (e: PointerEvent) => {
+        if (!isDrawing.current) return;
         if (e.pointerType === "mouse" && e.buttons === 0) { stopDrawing(); return; }
         e.preventDefault();
-        const events = e.nativeEvent.getCoalescedEvents?.() ?? [e.nativeEvent];
-        for (const ev of events) {
-          draw(getCanvasPoint(ev.clientX, ev.clientY, ev.pressure > 0 ? ev.pressure : 0.5));
+        /* getCoalescedEvents() recovers every digitizer sample the OS
+           batched between frames — essential for smooth iPad strokes */
+        const coalesced = (e as PointerEvent & { getCoalescedEvents?: () => PointerEvent[] })
+          .getCoalescedEvents?.() ?? [e];
+        for (const ce of coalesced) {
+          draw(getCanvasPoint(ce.clientX, ce.clientY, ce.pressure > 0 ? ce.pressure : 0.5));
         }
-        return;
-      }
+      };
 
-      /* (No pending-touch buffer needed — Draw Mode is explicit) */
-    }, [isDrawing, draw, stopDrawing, getCanvasPoint]);
+      const onUp     = () => { stopDrawing(); };
+      const onCancel = () => { stopDrawing(); };
 
-    const onPtrUp = useCallback((_e: React.PointerEvent<HTMLDivElement>) => {
-      stopDrawing();
-    }, [stopDrawing]);
+      const opts: AddEventListenerOptions = { passive: false };
+      el.addEventListener("pointerdown",   onDown,   opts);
+      el.addEventListener("pointermove",   onMove,   opts);
+      el.addEventListener("pointerup",     onUp,     opts);
+      el.addEventListener("pointerleave",  onUp,     opts);
+      el.addEventListener("pointercancel", onCancel, opts);
 
-    const onPtrCancel = useCallback((_e: React.PointerEvent<HTMLDivElement>) => {
-      stopDrawing();
-    }, [stopDrawing]);
+      return () => {
+        el.removeEventListener("pointerdown",   onDown);
+        el.removeEventListener("pointermove",   onMove);
+        el.removeEventListener("pointerup",     onUp);
+        el.removeEventListener("pointerleave",  onUp);
+        el.removeEventListener("pointercancel", onCancel);
+      };
+    }, [startDrawing, draw, stopDrawing, getCanvasPoint, isDrawing]);
 
     /* Block iPad Safari's native gesture machinery when Draw Mode is ON.
        Without aggressive preventDefault on touchstart/touchmove, iOS can
@@ -363,11 +377,6 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
             WebkitTouchCallout: "none",
           } as React.CSSProperties}
           onScroll={onScroll}
-          onPointerDown={onPtrDown}
-          onPointerMove={onPtrMove}
-          onPointerUp={onPtrUp}
-          onPointerLeave={onPtrUp}
-          onPointerCancel={onPtrCancel}
         >
           {/* ── Drawing canvas — anchored to content, scrolls with text ── */}
           <canvas

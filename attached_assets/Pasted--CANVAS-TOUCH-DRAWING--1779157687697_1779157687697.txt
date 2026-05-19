@@ -1,0 +1,339 @@
+/**
+ * ═══════════════════════════════════════════════════════════════════
+ *  CANVAS TOUCH DRAWING FIX — Drop-in patch for iPad Safari
+ *  Apply these changes to your existing tracing/drawing implementation
+ * ═══════════════════════════════════════════════════════════════════
+ *
+ *  ROOT CAUSE ANALYSIS
+ *  ────────────────────
+ *  1. BROKEN/DISCONNECTED LINES
+ *     Cause:  Using mousemove events for drawing. On touch devices,
+ *             mouse events are synthesized from touches with a
+ *             ~300ms delay and are heavily rate-limited — you only
+ *             get 1 event per animation frame instead of the full
+ *             60Hz+ pointer stream. Fast finger movement = skipped
+ *             points = gaps between line segments.
+ *     Fix:    Pointer Events API (pointerdown/pointermove/pointerup)
+ *             which fires at full device frequency for all input types.
+ *             PLUS: getCoalescedEvents() to recover intermediate points
+ *             that were batched between animation frames.
+ *
+ *  2. PAGE SCROLLS INSTEAD OF DRAWING
+ *     Cause:  Modern browsers make touchstart/touchmove passive by
+ *             default for scroll performance. When passive=true,
+ *             e.preventDefault() is silently IGNORED — the browser
+ *             scrolls regardless. Also, without `touch-action: none`
+ *             on the canvas, the browser intercepts touches for scroll
+ *             gestures BEFORE your JS handler even runs.
+ *     Fix:    canvas.style.touchAction = 'none' (CSS: touch-action: none)
+ *             + { passive: false } on all relevant event listeners.
+ *
+ *  3. WRONG COORDINATES ON RETINA/HIGH-DPI IPADS
+ *     Cause:  iPads have devicePixelRatio of 2 (most) or 3 (Pro).
+ *             If you set canvas.width = element.clientWidth, the
+ *             canvas backing store is half the physical resolution.
+ *             Using e.clientX directly also ignores the canvas's
+ *             position on screen (getBoundingClientRect offset).
+ *     Fix:    canvas.width = rect.width * devicePixelRatio
+ *             + ctx.scale(dpr, dpr) so draw calls use CSS pixels
+ *             + getCanvasXY() using getBoundingClientRect()
+ *
+ *  4. IOS RUBBER-BAND BOUNCE INTERRUPTS STROKES
+ *     Cause:  iOS overscroll bounce can fire even when you're
+ *             drawing, causing the page to shift mid-stroke.
+ *     Fix:    document.body.style.overscrollBehavior = 'none'
+ *             while in draw mode. Reset when draw mode is off.
+ * ═══════════════════════════════════════════════════════════════════
+ */
+ 
+ 
+/* ─────────────────────────────────────────────────────
+   STEP 1: CSS FIXES
+   Add to your stylesheet (or inject via JS)
+───────────────────────────────────────────────────── */
+const CSS_FIXES = `
+/* Canvas in scroll mode: normal touch behavior */
+#yourCanvas {
+  touch-action: auto;
+  user-select: none;
+  -webkit-user-select: none;
+}
+ 
+/* Canvas in draw mode: intercept ALL touches */
+#yourCanvas.drawing-mode {
+  touch-action: none;        /* CRITICAL: prevents scroll hijack */
+  cursor: crosshair;
+  overscroll-behavior: none; /* prevents iOS bounce during draw */
+}
+ 
+/* Prevent accidental text selection on double-tap */
+.your-canvas-wrapper {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none; /* disables iOS callout on long press */
+}
+`;
+ 
+// Inject CSS (or put in your .css file)
+const style = document.createElement('style');
+style.textContent = CSS_FIXES;
+document.head.appendChild(style);
+ 
+ 
+/* ─────────────────────────────────────────────────────
+   STEP 2: HIGH-DPI CANVAS SETUP
+   Call this on init AND on window resize
+───────────────────────────────────────────────────── */
+function setupCanvas(canvas) {
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+ 
+  // Physical pixel resolution (retina-aware)
+  canvas.width  = Math.round(rect.width  * dpr);
+  canvas.height = Math.round(rect.height * dpr);
+ 
+  // Scale so your draw calls can use CSS pixel coordinates
+  // (you do NOT need to multiply coordinates by dpr after this)
+  ctx.scale(dpr, dpr);
+ 
+  // These reset on every resize — re-apply after scale()
+  ctx.lineCap   = 'round';
+  ctx.lineJoin  = 'round';
+ 
+  return ctx;
+}
+ 
+ 
+/* ─────────────────────────────────────────────────────
+   STEP 3: COORDINATE HELPER
+   Converts viewport coordinates → canvas-local coordinates
+   Works correctly regardless of canvas position or DPR
+───────────────────────────────────────────────────── */
+function getCanvasPoint(canvas, pointerEvent) {
+  const rect = canvas.getBoundingClientRect();
+  return {
+    x: pointerEvent.clientX - rect.left,
+    y: pointerEvent.clientY - rect.top,
+    // pressure: 0..1. Apple Pencil sends real values; fingers send 0 or 0.5
+    pressure: pointerEvent.pressure || 0.5,
+  };
+}
+ 
+ 
+/* ─────────────────────────────────────────────────────
+   STEP 4: REPLACE YOUR EVENT LISTENERS
+   Remove old mouse/touch listeners, add these instead
+───────────────────────────────────────────────────── */
+function initDrawingListeners(canvas, ctx, getDrawModeState) {
+  let isDrawing    = false;
+  let lastX        = 0;
+  let lastY        = 0;
+  let pointBuffer  = [];    // for Bézier smoothing
+  let capturedId   = null;  // tracks which pointer we're following
+ 
+  // ── Stroke Begin ──
+  function handlePointerDown(e) {
+    if (!getDrawModeState()) return;      // only draw when mode is active
+    if (capturedId !== null) return;      // already tracking a pointer
+ 
+    e.preventDefault();
+    e.stopPropagation();
+ 
+    // Capture: canvas gets ALL future events for this pointer,
+    // even if finger moves outside the canvas bounds
+    canvas.setPointerCapture(e.pointerId);
+    capturedId = e.pointerId;
+ 
+    const pt = getCanvasPoint(canvas, e);
+    lastX = pt.x;
+    lastY = pt.y;
+    pointBuffer = [{ x: pt.x, y: pt.y }];
+    isDrawing = true;
+ 
+    // Draw a dot for tap (no movement) — without this, taps leave nothing
+    ctx.beginPath();
+    ctx.arc(pt.x, pt.y, ctx.lineWidth / 2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+ 
+  // ── Stroke Continue ──
+  function handlePointerMove(e) {
+    if (!getDrawModeState() || !isDrawing) return;
+    if (e.pointerId !== capturedId) return;
+ 
+    e.preventDefault();
+ 
+    /*
+     * getCoalescedEvents() — THE KEY TO SMOOTH LINES ON IPAD
+     * Between animation frames, the OS can buffer multiple touch positions.
+     * Without this, you only see the LAST position per frame, causing
+     * angular, choppy lines at fast speeds. Coalesced events give you
+     * every intermediate point the digitizer recorded.
+     */
+    const events = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
+ 
+    for (const ce of events) {
+      const pt = getCanvasPoint(canvas, ce);
+      drawSmoothSegment(ctx, pt.x, pt.y, pt.pressure, pointBuffer, lastX, lastY);
+      lastX = pt.x;
+      lastY = pt.y;
+    }
+  }
+ 
+  // ── Stroke End ──
+  function handlePointerUp(e) {
+    if (e.pointerId !== capturedId) return;
+    e.preventDefault();
+    isDrawing   = false;
+    capturedId  = null;
+    pointBuffer = [];
+  }
+ 
+  // ── Cancelled stroke (e.g., incoming call on iPhone) ──
+  function handlePointerCancel(e) {
+    if (e.pointerId !== capturedId) return;
+    isDrawing   = false;
+    capturedId  = null;
+    pointBuffer = [];
+  }
+ 
+  // CRITICAL: { passive: false } so preventDefault() actually works
+  const opts = { passive: false };
+  canvas.addEventListener('pointerdown',   handlePointerDown,   opts);
+  canvas.addEventListener('pointermove',   handlePointerMove,   opts);
+  canvas.addEventListener('pointerup',     handlePointerUp,     opts);
+  canvas.addEventListener('pointercancel', handlePointerCancel, opts);
+ 
+  // Fallback for very old iOS Safari (pre-13) without Pointer Events
+  // These are no-ops on modern browsers where Pointer Events fire first
+  canvas.addEventListener('touchstart', (e) => {
+    if (getDrawModeState()) e.preventDefault();
+  }, opts);
+  canvas.addEventListener('touchmove', (e) => {
+    if (getDrawModeState()) e.preventDefault();
+  }, opts);
+ 
+  // Block context menu (long-press on iOS shows it)
+  canvas.addEventListener('contextmenu', (e) => {
+    if (getDrawModeState()) e.preventDefault();
+  });
+}
+ 
+ 
+/* ─────────────────────────────────────────────────────
+   STEP 5: SMOOTH STROKE RENDERING
+   Quadratic Bézier through buffered points eliminates
+   the jagged/angular look from straight line segments
+───────────────────────────────────────────────────── */
+function drawSmoothSegment(ctx, x, y, pressure, buf, lastX, lastY) {
+  buf.push({ x, y });
+  if (buf.length > 3) buf.shift();
+ 
+  if (buf.length >= 3) {
+    const p0 = buf[0], p1 = buf[1], p2 = buf[2];
+    // Draw through the midpoints of consecutive pairs
+    // This is the standard technique for smooth canvas curves
+    const mx1 = (p0.x + p1.x) / 2, my1 = (p0.y + p1.y) / 2;
+    const mx2 = (p1.x + p2.x) / 2, my2 = (p1.y + p2.y) / 2;
+ 
+    ctx.beginPath();
+    ctx.moveTo(mx1, my1);
+    ctx.quadraticCurveTo(p1.x, p1.y, mx2, my2);
+    ctx.stroke();
+  } else {
+    ctx.beginPath();
+    ctx.moveTo(lastX, lastY);
+    ctx.lineTo(x, y);
+    ctx.stroke();
+  }
+}
+ 
+ 
+/* ─────────────────────────────────────────────────────
+   STEP 6: DRAW MODE TOGGLE
+   Call this when your Draw button is pressed
+───────────────────────────────────────────────────── */
+function setDrawMode(canvas, active) {
+  if (active) {
+    // Tell the browser to hand ALL touch events to our JS
+    canvas.style.touchAction = 'none';
+    canvas.classList.add('drawing-mode');
+ 
+    // Prevent iOS rubber-band bounce from interrupting strokes
+    document.body.style.overscrollBehavior = 'none';
+    document.documentElement.style.overflow = 'hidden';
+  } else {
+    // Restore normal scrolling behavior
+    canvas.style.touchAction = 'auto';
+    canvas.classList.remove('drawing-mode');
+ 
+    document.body.style.overscrollBehavior = '';
+    document.documentElement.style.overflow = '';
+  }
+}
+ 
+ 
+/* ─────────────────────────────────────────────────────
+   STEP 7: ALSO BLOCK SAFARI PINCH-ZOOM GESTURES
+   Safari fires gesturestart/change/end for multi-touch
+───────────────────────────────────────────────────── */
+let _drawModeActive = false; // keep a reference to your draw mode state
+ 
+['gesturestart', 'gesturechange', 'gestureend'].forEach(evt => {
+  document.addEventListener(evt, (e) => {
+    if (_drawModeActive) e.preventDefault();
+  }, { passive: false });
+});
+ 
+ 
+/* ─────────────────────────────────────────────────────
+   STEP 8: HANDLE RESIZE (keep canvas sharp on rotation)
+───────────────────────────────────────────────────── */
+let resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    // Re-run setupCanvas on your canvas element
+    // Note: this clears the canvas — save/restore imageData if needed
+    setupCanvas(document.getElementById('yourCanvas'));
+  }, 150);
+}, { passive: true });
+ 
+ 
+/* ─────────────────────────────────────────────────────
+   MINIMAL USAGE EXAMPLE
+───────────────────────────────────────────────────── */
+/*
+const canvas = document.getElementById('yourCanvas');
+const ctx    = setupCanvas(canvas);
+ 
+let drawModeOn = false;
+ 
+ctx.strokeStyle = '#1a1a2e';
+ctx.lineWidth   = 4;
+ctx.lineCap     = 'round';
+ctx.lineJoin    = 'round';
+ 
+initDrawingListeners(canvas, ctx, () => drawModeOn);
+ 
+document.getElementById('drawBtn').addEventListener('click', () => {
+  drawModeOn = !drawModeOn;
+  _drawModeActive = drawModeOn;
+  setDrawMode(canvas, drawModeOn);
+});
+ 
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => setupCanvas(canvas), 150);
+}, { passive: true });
+*/
+ 
+ 
+/* ─────────────────────────────────────────────────────
+   VIEWPORT META TAG — add to your HTML <head>
+   Prevents iOS from zooming on double-tap
+───────────────────────────────────────────────────── */
+// <meta name="viewport" content="width=device-width, initial-scale=1.0,
+//       maximum-scale=1.0, user-scalable=no" />
+ 
