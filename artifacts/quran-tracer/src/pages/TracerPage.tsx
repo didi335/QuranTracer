@@ -204,17 +204,17 @@ export default function TracerPage() {
             </svg>
           </button>
 
-          {/* Draw Mode toggle (finger = draw when ON, scroll when OFF) */}
+          {/* Trace Mode toggle (finger = trace when ON, scroll when OFF) */}
           <button
             onClick={() => setDrawMode(v => !v)}
-            title={drawMode ? "Draw Mode ON (finger draws)" : "Draw Mode OFF (finger scrolls)"}
+            title={drawMode ? "Trace Mode ON (finger traces)" : "Trace Mode OFF (finger scrolls)"}
             className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
             style={{ background: drawMode ? accent : "transparent", color: drawMode ? "#fff" : iconColor }}
           >
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
             </svg>
-            <span className="hidden sm:inline">Draw</span>
+            <span className="hidden sm:inline">Trace</span>
           </button>
 
           <Sep isDark={isDark} />
