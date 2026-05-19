@@ -385,16 +385,21 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
             <div style={{ opacity, transition }}>
               {/* Large calligraphic header */}
               <div style={{
-                display: "flex", alignItems: "center", justifyContent: "center", gap: "1.5rem",
+                display: "flex", alignItems: "center", gap: "1.5rem",
                 padding: "clamp(3.5rem, 5vw, 4.5rem) 5% 2rem",
                 borderBottom: `1px solid ${dividerColor}`,
                 marginBottom: "0.5rem",
               }}>
+                {/* Spacer to vertically balance the Arabic name's descenders/ascenders */}
                 <div style={{
                   fontFamily: '"Amiri Quran", "Amiri", serif',
                   fontSize: "clamp(52px, 8vw, 96px)",
-                  color: accentColor, lineHeight: 1,
-                  direction: "rtl", flexShrink: 0,
+                  color: accentColor,
+                  lineHeight: 1.2,
+                  direction: "rtl",
+                  flexShrink: 0,
+                  display: "flex",
+                  alignItems: "center",
                 }}>
                   {chapter.name_arabic}
                 </div>
