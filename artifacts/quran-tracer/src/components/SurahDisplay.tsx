@@ -426,7 +426,7 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
                   <div style={{ flex: 1, maxWidth: "12%", height: 1, background: dividerColor, opacity: 0.6 }} />
                   <div style={{
                     fontFamily: '"Amiri Quran", "Amiri", serif',
-                    fontSize: "clamp(16px, 2.5vw, 29px)",
+                    fontSize: "clamp(18px, 2.75vw, 32px)",
                     fontWeight: 400,
                     color: accentColor,
                     textAlign: "center",
