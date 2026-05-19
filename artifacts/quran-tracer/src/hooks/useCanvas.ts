@@ -21,7 +21,6 @@ export function useCanvas(penSettings: PenSettings, containerRef: RefObject<HTML
   const MAX_HISTORY  = 50;
 
   /* Committed-state approach — eliminates per-segment opacity overlap */
-  const committedImage      = useRef<ImageData | null>(null);
   const currentStrokePoints = useRef<Point[]>([]);
 
   const getContext = useCallback(() => {
@@ -59,33 +58,23 @@ export function useCanvas(penSettings: PenSettings, containerRef: RefObject<HTML
       isDrawing.current           = true;
       lastPoint.current           = point;
       currentStrokePoints.current = [point];
-
-      const ctx    = getContext();
-      const canvas = canvasRef.current;
-
-      if (penSettings.mode === "eraser") return; // eraser: no committed snapshot needed
-
-      /* Snapshot canvas before this stroke so we can redraw the whole
-         stroke each frame without per-segment opacity stacking */
-      if (ctx && canvas) {
-        committedImage.current = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      }
     },
-    [getContext, penSettings.mode, saveToHistory],
+    [saveToHistory],
   );
 
   const draw = useCallback(
     (point: Point) => {
       if (!isDrawing.current || !lastPoint.current) return;
-      const ctx    = getContext();
-      const canvas = canvasRef.current;
-      if (!ctx || !canvas) return;
+      const ctx = getContext();
+      if (!ctx) return;
 
-      /* ── Eraser: destination-out, direct per-segment (no overlap issue) ── */
+      const dpr = window.devicePixelRatio || 1;
+
+      /* ── Eraser ── */
       if (penSettings.mode === "eraser") {
         ctx.save();
         ctx.globalCompositeOperation = "destination-out" as GlobalCompositeOperation;
-        ctx.lineWidth = penSettings.thickness * 3 * (window.devicePixelRatio || 1);
+        ctx.lineWidth = penSettings.thickness * 3 * dpr;
         ctx.lineCap   = "round";
         ctx.lineJoin  = "round";
         ctx.beginPath();
@@ -94,38 +83,40 @@ export function useCanvas(penSettings: PenSettings, containerRef: RefObject<HTML
         ctx.stroke();
         ctx.restore();
         lastPoint.current = point;
+        currentStrokePoints.current.push(point);
         return;
       }
 
-      /* ── Pen: accumulate points, restore committed state, redraw full stroke ── */
+      /* ── Pen: incremental segment drawing with midpoint smoothing.
+         Much faster than full-stroke redraw — critical for iPad
+         performance on tall canvases. */
       currentStrokePoints.current.push(point);
-
-      if (committedImage.current) {
-        ctx.putImageData(committedImage.current, 0, 0);
-      }
-
       const pts = currentStrokePoints.current;
+      const n   = pts.length;
+
       ctx.save();
-      ctx.globalAlpha  = penSettings.opacity;
-      ctx.strokeStyle  = penSettings.color;
-      ctx.lineWidth    = penSettings.thickness * (point.pressure ?? 0.5) * (window.devicePixelRatio || 1);
-      ctx.lineCap      = "round";
-      ctx.lineJoin     = "round";
+      ctx.globalAlpha = penSettings.opacity;
+      ctx.strokeStyle = penSettings.color;
+      ctx.lineWidth   = penSettings.thickness * (point.pressure ?? 0.5) * dpr;
+      ctx.lineCap     = "round";
+      ctx.lineJoin    = "round";
       ctx.beginPath();
-      ctx.moveTo(pts[0].x, pts[0].y);
-      if (pts.length === 1) {
-        ctx.lineTo(pts[0].x, pts[0].y);
-      } else if (pts.length === 2) {
+
+      if (n === 2) {
+        /* First segment — straight line from start to second point */
+        ctx.moveTo(pts[0].x, pts[0].y);
         ctx.lineTo(pts[1].x, pts[1].y);
-      } else {
-        /* Quadratic Bézier through midpoints — produces smooth curves */
-        for (let i = 1; i < pts.length - 1; i++) {
-          const mx = (pts[i].x + pts[i + 1].x) / 2;
-          const my = (pts[i].y + pts[i + 1].y) / 2;
-          ctx.quadraticCurveTo(pts[i].x, pts[i].y, mx, my);
-        }
-        const last = pts[pts.length - 1];
-        ctx.lineTo(last.x, last.y);
+      } else if (n >= 3) {
+        /* Draw quadratic curve from previous midpoint, through pts[n-2],
+           to current midpoint. This produces continuous smooth strokes
+           without redrawing the whole path each frame. */
+        const p0 = pts[n - 3];
+        const p1 = pts[n - 2];
+        const p2 = pts[n - 1];
+        const midA = { x: (p0.x + p1.x) / 2, y: (p0.y + p1.y) / 2 };
+        const midB = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
+        ctx.moveTo(midA.x, midA.y);
+        ctx.quadraticCurveTo(p1.x, p1.y, midB.x, midB.y);
       }
       ctx.stroke();
       ctx.restore();
@@ -155,7 +146,6 @@ export function useCanvas(penSettings: PenSettings, containerRef: RefObject<HTML
     isDrawing.current           = false;
     lastPoint.current           = null;
     currentStrokePoints.current = [];
-    committedImage.current      = null;
   }, [getContext, penSettings]);
 
   const undo = useCallback(() => {
