@@ -247,17 +247,28 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
       stopDrawing();
     }, [stopDrawing]);
 
-    /* Prevent native scroll while pen is actively drawing (even with touch-action: pan-y).
-       This non-passive listener must be on the real DOM node. */
+    /* Block iPad Safari's native gesture machinery when Draw Mode is ON.
+       Without aggressive preventDefault on touchstart/touchmove, iOS can
+       commit to a scroll/zoom gesture and fire pointercancel mid-stroke —
+       producing the "tiny disconnected lines" symptom on iPad.
+       Also blocks scroll while pen/mouse is actively drawing. */
     useEffect(() => {
       const el = scrollRef.current;
       if (!el) return;
       const prevent = (e: TouchEvent) => {
-        if (isDrawing.current) e.preventDefault();
+        if (drawMode || isDrawing.current) e.preventDefault();
       };
-      el.addEventListener("touchmove", prevent, { passive: false });
-      return () => el.removeEventListener("touchmove", prevent);
-    }, [isDrawing]);
+      el.addEventListener("touchstart",  prevent, { passive: false });
+      el.addEventListener("touchmove",   prevent, { passive: false });
+      el.addEventListener("touchend",    prevent, { passive: false });
+      el.addEventListener("touchcancel", prevent, { passive: false });
+      return () => {
+        el.removeEventListener("touchstart",  prevent);
+        el.removeEventListener("touchmove",   prevent);
+        el.removeEventListener("touchend",    prevent);
+        el.removeEventListener("touchcancel", prevent);
+      };
+    }, [isDrawing, drawMode]);
 
     /* ── Keyboard navigation ─────────────────────────────────── */
     const onPageChangeRef = useRef(onPageChange);
