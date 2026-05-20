@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { SurahDisplay, SurahDisplayHandle } from "@/components/SurahDisplay";
 import { Toolbar } from "@/components/Toolbar";
 import { SurahNav } from "@/components/SurahNav";
@@ -30,6 +30,17 @@ export default function TracerPage() {
   const quran      = useQuran();
   const auth       = useAuth();
 
+  /* Mobile gate — the tracing UX needs an iPad-class screen.
+     Show a blocking notice on narrow viewports. */
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== "undefined" && window.innerWidth < 768,
+  );
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
   const {
     bookmarks, isBookmarked, toggleBookmark, removeBookmark, updateNote, syncState,
   } = useBookmarks(quran.currentPage, auth.tokenSet?.access_token ?? null);
@@ -53,6 +64,40 @@ export default function TracerPage() {
   const stripBg   = isDark ? "bg-[#1a1a2e] border-[#2a2a4e]" : "bg-white border-[#e0dbd0]";
   const iconColor = isDark ? "#a0a0c0"                        : "#7f8c8d";
   const accent    = isDark ? "#d4af37"                        : "#1a3a6e";
+
+  if (isMobile) {
+    return (
+      <div className={`flex flex-col items-center justify-center h-screen w-screen px-6 text-center ${bg}`}>
+        <div
+          className={`max-w-sm w-full rounded-2xl shadow-xl p-8 border ${panelBg}`}
+        >
+          <div
+            className="mx-auto mb-5 w-14 h-14 rounded-full flex items-center justify-center"
+            style={{ background: isDark ? "#2a2a4e" : "#f0ece0", color: accent }}
+          >
+            <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+              <rect x="3" y="4" width="18" height="13" rx="2" />
+              <path strokeLinecap="round" d="M8 21h8M12 17v4" />
+            </svg>
+          </div>
+          <h1
+            className="text-xl font-bold mb-2"
+            style={{ color: accent }}
+          >
+            Best on iPad or desktop
+          </h1>
+          <p
+            className="text-sm leading-relaxed"
+            style={{ color: isDark ? "#c0c0e0" : "#5a5a6e" }}
+          >
+            Quran Tracer is designed for a larger screen so you have room
+            to write each letter clearly. Please open this page on an iPad,
+            tablet, or computer to start tracing.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`flex h-screen w-screen overflow-hidden select-none ${bg}`}>
