@@ -268,11 +268,12 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
         }
 
         /* Pen (Apple Pencil / stylus): only draws when Draw Mode is ON,
-           same as finger. */
+           same as finger. Apple Pencil uses a fixed thickness of 15
+           regardless of the slider — gives a consistent handwriting feel. */
         if (e.pointerType === "pen") {
           if (!drawModeRef.current) return;
           e.preventDefault();
-          startDrawing(getCanvasPoint(e.clientX, e.clientY, e.pressure > 0 ? e.pressure : 0.5));
+          startDrawing(getCanvasPoint(e.clientX, e.clientY, e.pressure > 0 ? e.pressure : 0.5), 15);
           try { el.setPointerCapture(e.pointerId); } catch {}
           return;
         }

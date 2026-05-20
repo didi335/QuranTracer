@@ -165,14 +165,15 @@ export function useCanvas(penSettings: PenSettings, _containerRef: RefObject<HTM
   };
 
   const startDrawing = useCallback(
-    (point: Point) => {
+    (point: Point, thicknessOverride?: number) => {
       const ctx = getContext();
       if (!ctx) return;
       const dpr = getDpr();
 
+      const thickness = thicknessOverride ?? penSettings.thickness;
       const width = penSettings.mode === "eraser"
-        ? penSettings.thickness * 3 * dpr
-        : penSettings.thickness * (point.pressure ?? 0.5) * dpr;
+        ? thickness * 3 * dpr
+        : thickness * (point.pressure ?? 0.5) * dpr;
 
       const stroke: Stroke = {
         mode:    penSettings.mode,
