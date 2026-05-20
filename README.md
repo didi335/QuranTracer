@@ -1,6 +1,6 @@
 # Quran Tracer
 
-An iPad-optimized web app for tracing Arabic Quranic text. Designed for students learning to write Arabic script — load any surah, then trace over the verses with an Apple Pencil, finger, or mouse. Submisoin for Quran Foundation Hackathon 2026- Made by Khadijah, 16 year old devloper.
+An iPad-optimized web app for tracing Arabic Quranic text. Designed for students learning to write Arabic script — load any surah, then trace over the verses with an Apple Pencil, finger, or mouse. Submisoin for Quran Foundation Hackathon 2026-Made by Khadijah, 16 year old devloper.
 
 🔗 **Live app:** https://qurantracer.net/
 
