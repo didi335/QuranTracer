@@ -242,15 +242,6 @@ export default function TracerPage() {
           <ActionBtn onClick={() => displayRef.current?.undo()} title="Undo" color={iconColor}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
           </ActionBtn>
-          {/* Eraser */}
-          <ActionBtn onClick={() => displayRef.current?.clear()} title="Eraser" color={isDark ? "#ff9999" : "#c0392b"}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 3.5a2.121 2.121 0 013 3L8 18l-5 1 1-5L16.5 3.5z" />
-            <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l4 4" />
-          </ActionBtn>
-          {/* Save */}
-          <ActionBtn onClick={() => displayRef.current?.download()} title="Save as image" color={isDark ? "#90ee90" : "#1b7a3e"}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-          </ActionBtn>
 
           <Sep isDark={isDark} />
 
