@@ -92,7 +92,9 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
       const scroll   = scrollRef.current;
       const content  = contentRef.current;
       if (!canvas || !scroll || !content) return;
-      const dpr = window.devicePixelRatio || 1;
+      /* Cap DPR at 2 — matches useCanvas. Keeps the canvas buffer
+         small enough that strokes render without lag on 3x iPads. */
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
       const w   = scroll.clientWidth;
       const h   = content.scrollHeight || content.offsetHeight;
       if (!w || !h) return;

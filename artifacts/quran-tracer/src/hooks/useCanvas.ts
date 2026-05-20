@@ -23,17 +23,25 @@ export function useCanvas(penSettings: PenSettings, containerRef: RefObject<HTML
   /* Committed-state approach — eliminates per-segment opacity overlap */
   const currentStrokePoints = useRef<Point[]>([]);
 
+  /* GPU-accelerated context. We only read pixels in saveToHistory()
+     (undo), which is infrequent — willReadFrequently:true would force
+     a CPU-backed bitmap and make every stroke segment slower. */
   const getContext = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return null;
-    return canvas.getContext("2d", { willReadFrequently: true });
+    return canvas.getContext("2d");
   }, []);
+
+  /* Cap DPR at 2 so the canvas buffer doesn't balloon on 3x iPads.
+     The visual difference between 2x and 3x for ink strokes is
+     imperceptible, but the per-frame fill cost roughly doubles. */
+  const getDpr = () => Math.min(window.devicePixelRatio || 1, 2);
 
   const getCanvasPoint = useCallback(
     (clientX: number, clientY: number, pressure = 1): Point => {
       const canvas = canvasRef.current!;
       const rect   = canvas.getBoundingClientRect();
-      const dpr    = window.devicePixelRatio || 1;
+      const dpr    = getDpr();
       return {
         x: (clientX - rect.left)  * dpr,
         y: (clientY - rect.top)   * dpr,
@@ -58,8 +66,31 @@ export function useCanvas(penSettings: PenSettings, containerRef: RefObject<HTML
       isDrawing.current           = true;
       lastPoint.current           = point;
       currentStrokePoints.current = [point];
+
+      /* Set stroke state ONCE per stroke — re-applying ctx.save/restore
+         and re-setting strokeStyle/lineCap/etc. on every coalesced
+         pointer sample was the main source of trace lag. */
+      const ctx = getContext();
+      if (!ctx) return;
+      const dpr = getDpr();
+      if (penSettings.mode === "eraser") {
+        ctx.globalCompositeOperation = "destination-out" as GlobalCompositeOperation;
+        ctx.globalAlpha = 1;
+        ctx.lineWidth   = penSettings.thickness * 3 * dpr;
+      } else {
+        ctx.globalCompositeOperation = "source-over";
+        ctx.globalAlpha = penSettings.opacity;
+        ctx.strokeStyle = penSettings.color;
+        ctx.fillStyle   = penSettings.color;
+        /* Use a constant width per stroke based on the start pressure.
+           Re-deriving width per segment caused both extra work and
+           visually wobbly strokes on the iPad. */
+        ctx.lineWidth   = penSettings.thickness * (point.pressure ?? 0.5) * dpr;
+      }
+      ctx.lineCap  = "round";
+      ctx.lineJoin = "round";
     },
-    [saveToHistory],
+    [saveToHistory, getContext, penSettings],
   );
 
   const draw = useCallback(
@@ -68,48 +99,27 @@ export function useCanvas(penSettings: PenSettings, containerRef: RefObject<HTML
       const ctx = getContext();
       if (!ctx) return;
 
-      const dpr = window.devicePixelRatio || 1;
-
       /* ── Eraser ── */
       if (penSettings.mode === "eraser") {
-        ctx.save();
-        ctx.globalCompositeOperation = "destination-out" as GlobalCompositeOperation;
-        ctx.lineWidth = penSettings.thickness * 3 * dpr;
-        ctx.lineCap   = "round";
-        ctx.lineJoin  = "round";
         ctx.beginPath();
         ctx.moveTo(lastPoint.current.x, lastPoint.current.y);
         ctx.lineTo(point.x, point.y);
         ctx.stroke();
-        ctx.restore();
         lastPoint.current = point;
         currentStrokePoints.current.push(point);
         return;
       }
 
-      /* ── Pen: incremental segment drawing with midpoint smoothing.
-         Much faster than full-stroke redraw — critical for iPad
-         performance on tall canvases. */
+      /* ── Pen: incremental segment drawing with midpoint smoothing. */
       currentStrokePoints.current.push(point);
       const pts = currentStrokePoints.current;
       const n   = pts.length;
 
-      ctx.save();
-      ctx.globalAlpha = penSettings.opacity;
-      ctx.strokeStyle = penSettings.color;
-      ctx.lineWidth   = penSettings.thickness * (point.pressure ?? 0.5) * dpr;
-      ctx.lineCap     = "round";
-      ctx.lineJoin    = "round";
       ctx.beginPath();
-
       if (n === 2) {
-        /* First segment — straight line from start to second point */
         ctx.moveTo(pts[0].x, pts[0].y);
         ctx.lineTo(pts[1].x, pts[1].y);
       } else if (n >= 3) {
-        /* Draw quadratic curve from previous midpoint, through pts[n-2],
-           to current midpoint. This produces continuous smooth strokes
-           without redrawing the whole path each frame. */
         const p0 = pts[n - 3];
         const p1 = pts[n - 2];
         const p2 = pts[n - 1];
@@ -119,11 +129,10 @@ export function useCanvas(penSettings: PenSettings, containerRef: RefObject<HTML
         ctx.quadraticCurveTo(p1.x, p1.y, midB.x, midB.y);
       }
       ctx.stroke();
-      ctx.restore();
 
       lastPoint.current = point;
     },
-    [getContext, penSettings],
+    [getContext, penSettings.mode],
   );
 
   const stopDrawing = useCallback(() => {
