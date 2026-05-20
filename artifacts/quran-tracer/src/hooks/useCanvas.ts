@@ -169,11 +169,26 @@ export function useCanvas(penSettings: PenSettings, _containerRef: RefObject<HTM
   );
 
   const draw = useCallback(
-    (point: Point) => {
+    (rawPoint: Point) => {
       if (!isDrawing.current) return;
       const ctx    = getContext();
       const stroke = currentStroke.current;
       if (!ctx || !stroke) return;
+
+      /* Light low-pass filter on the incoming sample — removes the
+         small high-frequency jitter Apple Pencil produces without
+         adding perceptible lag. The combination of this EMA plus the
+         quadratic midpoint curve below gives a noticeably smoother
+         feel than raw samples alone. */
+      const prev = stroke.points[stroke.points.length - 1];
+      const alpha = 0.55; // weight of the new sample
+      const point: Point = prev
+        ? {
+            x: prev.x * (1 - alpha) + rawPoint.x * alpha,
+            y: prev.y * (1 - alpha) + rawPoint.y * alpha,
+            pressure: rawPoint.pressure,
+          }
+        : rawPoint;
 
       stroke.points.push(point);
       const pts = stroke.points;
