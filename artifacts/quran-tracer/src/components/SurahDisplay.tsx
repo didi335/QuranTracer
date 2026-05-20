@@ -715,8 +715,15 @@ function PageSection({
   const transition = "opacity 0.2s ease";
 
   if (!filteredVerses.length) {
+    /* Reserve a stable height that matches a typical Mushaf page so
+       that when the verses arrive the layout doesn't grow underneath
+       the user mid-scroll. ~15 lines × ~84px line-height ≈ 1260px. */
     return (
-      <div style={{ display: "flex", justifyContent: "center", padding: "3rem 5%", opacity: 0.4 }}>
+      <div style={{
+        minHeight: "min(80vh, 1300px)",
+        display: "flex", justifyContent: "center", alignItems: "center",
+        padding: "3rem 5%", opacity: 0.4,
+      }}>
         <div style={{
           width: 24, height: 24, borderRadius: "50%",
           border: `2px solid ${accentColor}`, borderTopColor: "transparent",
