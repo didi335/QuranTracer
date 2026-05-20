@@ -687,8 +687,8 @@ function PageSection({
             )}
             <div style={{
               fontFamily,
-              fontSize:    page <= 2 ? "clamp(34px, 4.6vw, 54px)" : "clamp(30px, 4.2vw, 48px)",
-              lineHeight:  2.2,
+              fontSize:    page <= 2 ? "clamp(30px, 4.0vw, 46px)" : "clamp(24px, 3.2vw, 38px)",
+              lineHeight:  1.9,
               color:       textColor,
               textAlign:   page <= 2 ? "center" : "justify",
               textAlignLast: page <= 2 ? "center" : "justify",
@@ -696,8 +696,9 @@ function PageSection({
               unicodeBidi: "bidi-override",
               overflowWrap: "break-word",
               wordBreak:    "normal",
-              maxWidth:     page <= 2 ? "85%" : "100%",
+              maxWidth:     page <= 2 ? "75%" : "78%",
               margin:       "0 auto",
+              wordSpacing:  "-0.15em",
             }}>
               {pl.words.map((w, wi) => (
                 <span key={w.id}>
