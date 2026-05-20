@@ -17,12 +17,7 @@ type LeftTab = "surahs" | "bookmarks";
 
 export default function TracerPage() {
   const [isDark,           setIsDark]           = useState(false);
-  /* Memorization mode: 0 = full text, 1 = faded text, 2 = hidden.
-     Cycles 0 → 1 → 2 → 0 each click. */
-  const [textStage,        setTextStage]        = useState<0 | 1 | 2>(0);
-  const cycleTextStage = () => setTextStage(s => ((s + 1) % 3) as 0 | 1 | 2);
-  const textOpacity = textStage === 0 ? 1 : textStage === 1 ? 0.25 : 0;
-  const textStageLabel  = textStage === 0 ? "Trace" : textStage === 1 ? "Faded" : "Memory";
+  const [showText,         setShowText]         = useState(true);
   const [drawMode,         setDrawMode]         = useState(false);
   const [leftOpen,         setLeftOpen]         = useState(false);
   const [leftTab,     setLeftTab]     = useState<LeftTab>("surahs");
@@ -210,7 +205,7 @@ export default function TracerPage() {
             chapters={quran.chapters}
             getVerses={quran.getVerses}
             currentPage={quran.currentPage}
-            textOpacity={textOpacity}
+            showText={showText}
             penSettings={penSettings}
             isDark={isDark}
             drawMode={drawMode}
@@ -270,24 +265,20 @@ export default function TracerPage() {
 
           <Sep isDark={isDark} />
 
-          {/* Memorization mode — cycles Trace → Faded → Memory */}
+          {/* Show/hide text */}
           <button
-            onClick={cycleTextStage}
-            title={`Memorization: ${textStageLabel} (tap to cycle)`}
+            onClick={() => setShowText(v => !v)}
+            title={showText ? "Hide text" : "Show text"}
             className="flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-full text-xs font-semibold transition-all"
-            style={{
-              background: textStage === 0 ? accent : textStage === 1 ? (isDark ? "#3a3a5e" : "#e6dfc8") : "transparent",
-              color:      textStage === 0 ? "#fff" : iconColor,
-            }}
+            style={{ background: showText ? accent : "transparent", color: showText ? "#fff" : iconColor }}
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              {textStage === 2
-                ? <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                : <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0zM2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              {showText
+                ? <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0zM2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                : <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
               }
             </svg>
-            <span className="hidden sm:inline">{textStageLabel}</span>
-            <span className="hidden md:inline opacity-60 text-[10px] ml-0.5">{textStage + 1}/3</span>
+            <span className="hidden sm:inline">{showText ? "Hide" : "Show"} text</span>
           </button>
 
           <Sep isDark={isDark} />
@@ -343,9 +334,8 @@ export default function TracerPage() {
             <Toolbar
               penSettings={penSettings}
               onPenChange={(s) => setPenSettings(p => ({ ...p, ...s }))}
-              textOpacity={textOpacity}
-              textStageLabel={textStageLabel}
-              onCycleTextStage={cycleTextStage}
+              showText={showText}
+              onToggleText={() => setShowText(v => !v)}
               onUndo={() => displayRef.current?.undo()}
               onClear={() => displayRef.current?.clear()}
               onDownload={() => displayRef.current?.download()}

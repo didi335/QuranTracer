@@ -10,7 +10,7 @@ interface SurahDisplayProps {
   chapters:          Chapter[];
   getVerses:         (page: number) => Verse[];
   currentPage:       number;
-  textOpacity:       number;
+  showText:          boolean;
   penSettings:       PenSettings;
   isDark:            boolean;
   drawMode:          boolean;
