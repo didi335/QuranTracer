@@ -134,12 +134,18 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
 
     /* ── Clear canvas + reset scroll when surah changes ─────── */
     const prevSurahStart = useRef<number | null>(null);
+    /* Use a ref to know whether the next currentPage change was
+       triggered by the user scrolling (so we don't re-scroll) */
+    const scrollTriggeredRef = useRef(false);
     useEffect(() => {
       const newStart = surahRange?.start ?? null;
       if (newStart !== prevSurahStart.current) {
         prevSurahStart.current = newStart;
         clearHistory();
-        /* Jump instantly to top */
+        /* Jump instantly to top so the surah header is visible.
+           Suppress the next currentPage scroll-to-section effect that
+           would otherwise jump past the header to the first page. */
+        scrollTriggeredRef.current = true;
         if (scrollRef.current) {
           scrollRef.current.scrollTop = 0;
         }
@@ -147,10 +153,7 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
     }, [surahRange, clearHistory]);
 
     /* ── Scroll tracking: update currentPage as user scrolls ── */
-    /* Use a ref to know whether the next currentPage change was
-       triggered by the user scrolling (so we don't re-scroll) */
-    const scrollTriggeredRef = useRef(false);
-    const scrollTimer        = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const scrollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const onScroll = useCallback(() => {
       if (scrollTimer.current) clearTimeout(scrollTimer.current);
@@ -653,7 +656,7 @@ function PageSection({
 
   if (!filteredVerses.length) {
     return (
-      <div style={{ display: "flex", justifyContent: "center", padding: "3rem 5%", opacity: 0.4 }}>
+      <div style={{ display: "flex", justifyContent: "center", padding: "3rem 5%", opacity: 0.8 }}>
         <div style={{
           width: 24, height: 24, borderRadius: "50%",
           border: `2px solid ${accentColor}`, borderTopColor: "transparent",

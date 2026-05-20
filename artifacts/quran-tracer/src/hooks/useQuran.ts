@@ -73,11 +73,6 @@ export function useQuran(): QuranState {
       .catch(() => inflight.current.delete(p));
   }, []);
 
-  /* Pre-fetch all pages in a range (for continuous scroll) */
-  const fetchRange = useCallback((start: number, end: number) => {
-    for (let p = start; p <= end; p++) fetchPage(p);
-  }, [fetchPage]);
-
   const loadAround = useCallback((page: number) => {
     const p = Math.max(1, Math.min(TOTAL_PAGES, page));
     fetchPage(p);
@@ -100,12 +95,10 @@ export function useQuran(): QuranState {
             : Promise.resolve(TOTAL_PAGES);
           nextFetch.then((endPage) => {
             setSurahRange({ start: startPage, end: endPage });
-            fetchRange(startPage, endPage);
             setCurrentPage(startPage);
             loadAround(startPage);
           }).catch(() => {
             setSurahRange({ start: startPage, end: startPage });
-            fetchRange(startPage, startPage);
             setCurrentPage(startPage);
             loadAround(startPage);
           });
@@ -149,14 +142,13 @@ export function useQuran(): QuranState {
         const range = { start: startPage, end: endPage };
         surahRangeRef.current = range;
         setSurahRange(range);
-        /* Pre-fetch every page in the surah for seamless continuous scroll */
-        fetchRange(startPage, endPage);
         const p = Math.max(1, Math.min(TOTAL_PAGES, startPage));
         setCurrentPage(p);
+        loadAround(p);
         setLoading(!cache.current.has(p));
       })
       .catch((e) => { setError(e.message); setLoading(false); });
-  }, [fetchRange]);
+  }, [loadAround]);
 
   const getVerses = useCallback((page: number): Verse[] => {
     // eslint-disable-next-line @typescript-eslint/no-unused-expressions
