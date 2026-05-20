@@ -49,6 +49,23 @@ export function useCanvas(penSettings: PenSettings, _containerRef: RefObject<HTM
   /* The stroke currently being drawn */
   const currentStroke = useRef<Stroke | null>(null);
 
+  /* Cached canvas bounding rect for the lifetime of a stroke.
+     Apple Pencil emits ~240 samples/sec; each coalesced sample used to
+     call `canvas.getBoundingClientRect()`, which can force a sync layout
+     and chew several ms per frame on a tall iPad canvas. Caching it
+     once at pointer-down removes that overhead entirely. The rect is
+     invalidated on stroke end, scroll, and resize. */
+  const rectCache = useRef<{ left: number; top: number } | null>(null);
+  const primeRect = useCallback(() => {
+    const c = canvasRef.current;
+    if (!c) return;
+    const r = c.getBoundingClientRect();
+    rectCache.current = { left: r.left, top: r.top };
+  }, []);
+  const invalidateRect = useCallback(() => {
+    rectCache.current = null;
+  }, []);
+
   const getContext = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return null;
@@ -61,11 +78,19 @@ export function useCanvas(penSettings: PenSettings, _containerRef: RefObject<HTM
   const getCanvasPoint = useCallback(
     (clientX: number, clientY: number, pressure = 1): Point => {
       const canvas = canvasRef.current!;
-      const rect   = canvas.getBoundingClientRect();
-      const dpr    = getDpr();
+      let left: number, top: number;
+      if (rectCache.current) {
+        left = rectCache.current.left;
+        top  = rectCache.current.top;
+      } else {
+        const rect = canvas.getBoundingClientRect();
+        left = rect.left;
+        top  = rect.top;
+      }
+      const dpr = getDpr();
       return {
-        x: (clientX - rect.left) * dpr,
-        y: (clientY - rect.top)  * dpr,
+        x: (clientX - left) * dpr,
+        y: (clientY - top)  * dpr,
         pressure,
       };
     },
@@ -162,10 +187,13 @@ export function useCanvas(penSettings: PenSettings, _containerRef: RefObject<HTM
       currentStroke.current = stroke;
       isDrawing.current     = true;
 
+      /* Snapshot the canvas rect once for the duration of this stroke */
+      primeRect();
+
       /* Set state once for the whole stroke */
       applyStrokeStyle(ctx, stroke);
     },
-    [getContext, penSettings],
+    [getContext, penSettings, primeRect],
   );
 
   const draw = useCallback(
@@ -175,28 +203,10 @@ export function useCanvas(penSettings: PenSettings, _containerRef: RefObject<HTM
       const stroke = currentStroke.current;
       if (!ctx || !stroke) return;
 
-      /* Light low-pass filter on the incoming sample — removes the
-         small high-frequency jitter Apple Pencil produces without
-         adding perceptible lag. The combination of this EMA plus the
-         quadratic midpoint curve below gives a noticeably smoother
-         feel than raw samples alone. */
-      const prev = stroke.points[stroke.points.length - 1];
-      /* Adaptive smoothing: very light blend for fast motion (so the
-         pen tip stays pinned under the user's hand), more blend only
-         for tiny movements where jitter dominates. This eliminates
-         the visible "lag behind the tip" feeling of a heavy EMA. */
-      let point: Point = rawPoint;
-      if (prev) {
-        const dx = rawPoint.x - prev.x;
-        const dy = rawPoint.y - prev.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        const alpha = dist > 8 ? 1 : 0.85;          // mostly raw
-        point = alpha === 1 ? rawPoint : {
-          x: prev.x * (1 - alpha) + rawPoint.x * alpha,
-          y: prev.y * (1 - alpha) + rawPoint.y * alpha,
-          pressure: rawPoint.pressure,
-        };
-      }
+      /* No input filtering — the quadratic midpoint curve below already
+         smooths visually, and any blend introduces lag behind the pen
+         tip. Keep raw samples so ink stays pinned under the Pencil. */
+      const point: Point = rawPoint;
 
       stroke.points.push(point);
       const pts = stroke.points;
@@ -235,13 +245,15 @@ export function useCanvas(penSettings: PenSettings, _containerRef: RefObject<HTM
 
     isDrawing.current     = false;
     currentStroke.current = null;
-  }, [getContext]);
+    invalidateRect();
+  }, [getContext, invalidateRect]);
 
   /* Cancel any in-flight stroke so undo/clear can mutate the stroke
      list without orphaning the active currentStroke reference. */
   const cancelActiveStroke = () => {
     isDrawing.current     = false;
     currentStroke.current = null;
+    invalidateRect();
   };
 
   const undo = useCallback(() => {
