@@ -52,7 +52,13 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
       canvasRef, startDrawing, draw, stopDrawing,
       undo, clear, clearHistory, downloadAsImage, getCanvasPoint, isDrawing,
       renderAll,
-    } = useCanvas(penSettings, dummyRef);
+    } = useCanvas(
+      penSettings,
+      dummyRef,
+      /* One saved drawing per surah, so that switching surahs gives a
+         fresh canvas and returning later restores the user's strokes. */
+      selectedChapterId ? `surah-${selectedChapterId}` : undefined,
+    );
 
     /* ── Pages to render: a window around currentPage ─────────
        Rendering an entire surah (e.g. Al-Baqarah = 48 pages) makes the

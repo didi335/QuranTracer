@@ -1,4 +1,4 @@
-import { useRef, useCallback, RefObject } from "react";
+import { useRef, useCallback, useEffect, RefObject } from "react";
 
 export interface PenSettings {
   color:     string;
@@ -34,7 +34,20 @@ interface Stroke {
  * pops the last stroke and replays the rest — fast for any realistic
  * number of strokes (a typical tracing session is <200).
  */
-export function useCanvas(penSettings: PenSettings, _containerRef: RefObject<HTMLElement | null>) {
+export function useCanvas(
+  penSettings: PenSettings,
+  _containerRef: RefObject<HTMLElement | null>,
+  storageKey?: string,
+) {
+  const STORAGE_PREFIX = "quran-tracer:strokes:";
+  const persist = useCallback((list: Stroke[]) => {
+    if (!storageKey) return;
+    try {
+      localStorage.setItem(STORAGE_PREFIX + storageKey, JSON.stringify(list));
+    } catch {
+      /* quota exceeded or storage disabled — silently ignore */
+    }
+  }, [storageKey]);
   const canvasRef    = useRef<HTMLCanvasElement>(null);
   const isDrawing    = useRef(false);
 
@@ -158,6 +171,28 @@ export function useCanvas(penSettings: PenSettings, _containerRef: RefObject<HTM
     for (const s of strokes.current) renderStroke(ctx, s);
   }, [getContext]);
 
+  /* Load any previously-saved strokes for this storage key.
+     Strokes are stored in canvas-pixel coordinates so they restore
+     pixel-perfect when the user returns on the same device/viewport.
+     If the viewport changes drastically the strokes will simply land
+     where they were — acceptable for "remember my writing" behaviour. */
+  useEffect(() => {
+    if (!storageKey) {
+      strokes.current   = [];
+      undoStack.current = [];
+      renderAll();
+      return;
+    }
+    try {
+      const raw = localStorage.getItem(STORAGE_PREFIX + storageKey);
+      strokes.current   = raw ? (JSON.parse(raw) as Stroke[]) : [];
+    } catch {
+      strokes.current = [];
+    }
+    undoStack.current = [];
+    renderAll();
+  }, [storageKey, renderAll]);
+
   const pushUndo = () => {
     /* Shallow copy of the strokes array — entries are reused references */
     undoStack.current.push(strokes.current.slice());
@@ -247,7 +282,8 @@ export function useCanvas(penSettings: PenSettings, _containerRef: RefObject<HTM
     isDrawing.current     = false;
     currentStroke.current = null;
     invalidateRect();
-  }, [getContext, invalidateRect]);
+    persist(strokes.current);
+  }, [getContext, invalidateRect, persist]);
 
   /* Cancel any in-flight stroke so undo/clear can mutate the stroke
      list without orphaning the active currentStroke reference. */
@@ -263,7 +299,8 @@ export function useCanvas(penSettings: PenSettings, _containerRef: RefObject<HTM
     if (!prev) return;
     strokes.current = prev;
     renderAll();
-  }, [renderAll]);
+    persist(strokes.current);
+  }, [renderAll, persist]);
 
   const clear = useCallback(() => {
     cancelActiveStroke();
@@ -272,7 +309,8 @@ export function useCanvas(penSettings: PenSettings, _containerRef: RefObject<HTM
     const ctx    = getContext();
     const canvas = canvasRef.current;
     if (ctx && canvas) ctx.clearRect(0, 0, canvas.width, canvas.height);
-  }, [getContext]);
+    persist(strokes.current);
+  }, [getContext, persist]);
 
   const clearHistory = useCallback(() => {
     cancelActiveStroke();
@@ -281,7 +319,8 @@ export function useCanvas(penSettings: PenSettings, _containerRef: RefObject<HTM
     const ctx    = getContext();
     const canvas = canvasRef.current;
     if (ctx && canvas) ctx.clearRect(0, 0, canvas.width, canvas.height);
-  }, [getContext]);
+    persist(strokes.current);
+  }, [getContext, persist]);
 
   const downloadAsImage = useCallback(
     (_textLayerRef: RefObject<HTMLElement | null>, _showText: boolean, fileName: string) => {
