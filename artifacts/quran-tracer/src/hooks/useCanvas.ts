@@ -17,8 +17,12 @@ export function useCanvas(penSettings: PenSettings, containerRef: RefObject<HTML
   const canvasRef    = useRef<HTMLCanvasElement>(null);
   const isDrawing    = useRef(false);
   const lastPoint    = useRef<Point | null>(null);
-  const history      = useRef<ImageData[]>([]);
-  const MAX_HISTORY  = 50;
+  /* History as offscreen canvas snapshots (GPU-friendly) rather than
+     ImageData. ImageData forces a full GPU→CPU pixel readback on every
+     saveToHistory(), which on a 2000×10000 canvas is ~80MB per stroke
+     and was producing multi-second hitches between strokes. */
+  const history      = useRef<HTMLCanvasElement[]>([]);
+  const MAX_HISTORY  = 30;
 
   /* Committed-state approach — eliminates per-segment opacity overlap */
   const currentStrokePoints = useRef<Point[]>([]);
@@ -52,13 +56,18 @@ export function useCanvas(penSettings: PenSettings, containerRef: RefObject<HTML
   );
 
   const saveToHistory = useCallback(() => {
-    const ctx    = getContext();
     const canvas = canvasRef.current;
-    if (!ctx || !canvas) return;
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    history.current.push(imageData);
+    if (!canvas || canvas.width === 0 || canvas.height === 0) return;
+    const snap = document.createElement("canvas");
+    snap.width  = canvas.width;
+    snap.height = canvas.height;
+    const sctx = snap.getContext("2d");
+    if (!sctx) return;
+    /* drawImage stays GPU-side; no CPU pixel readback. */
+    sctx.drawImage(canvas, 0, 0);
+    history.current.push(snap);
     if (history.current.length > MAX_HISTORY) history.current.shift();
-  }, [getContext]);
+  }, []);
 
   const startDrawing = useCallback(
     (point: Point) => {
@@ -161,11 +170,13 @@ export function useCanvas(penSettings: PenSettings, containerRef: RefObject<HTML
     const ctx    = getContext();
     const canvas = canvasRef.current;
     if (!ctx || !canvas) return;
-    if (history.current.length === 0) {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      return;
-    }
-    ctx.putImageData(history.current.pop()!, 0, 0);
+    ctx.save();
+    ctx.globalCompositeOperation = "source-over";
+    ctx.globalAlpha = 1;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const snap = history.current.pop();
+    if (snap) ctx.drawImage(snap, 0, 0);
+    ctx.restore();
   }, [getContext]);
 
   const clear = useCallback(() => {
