@@ -3,7 +3,6 @@ import {
   useImperativeHandle, useMemo,
 } from "react";
 import { Verse, Chapter, Word, TOTAL_PAGES } from "@/services/quranApi";
-import { ensurePageFont, pageFontFamily } from "@/services/qpcFonts";
 import { useCanvas, PenSettings } from "@/hooks/useCanvas";
 import { SurahRange } from "@/hooks/useQuran";
 
@@ -760,21 +759,17 @@ function PageSection({
               direction:   "rtl",
               unicodeBidi: "bidi-override",
             }}>
-              {pl.words.map((w, wi) => {
-                ensurePageFont(w.page_number);
-                return (
-                  <span
-                    key={w.id}
-                    style={{
-                      fontFamily: pageFontFamily(w.page_number),
-                      color: w.char_type_name === "end" ? accentColor : textColor,
-                      marginInlineStart: wi > 0 ? "0.03em" : 0,
-                    }}
-                  >
-                    {w.code_v2}
-                  </span>
-                );
-              })}
+              {pl.words.map((w, wi) => (
+                <span
+                  key={w.id}
+                  style={{
+                    color: w.char_type_name === "end" ? accentColor : textColor,
+                    marginInlineStart: wi > 0 ? "0.03em" : 0,
+                  }}
+                >
+                  {w.code_v2}
+                </span>
+              ))}
             </div>
           </div>
         ))}
