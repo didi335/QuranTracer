@@ -265,6 +265,27 @@ export default function TracerPage() {
 
           <Sep isDark={isDark} />
 
+          {/* Eraser toggle */}
+          {(() => {
+            const isErasing = penSettings.mode === "eraser";
+            return (
+              <button
+                onClick={() => setPenSettings(s => ({ ...s, mode: s.mode === "eraser" ? "pen" : "eraser" }))}
+                title={isErasing ? "Switch to pen" : "Eraser"}
+                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-full text-xs font-semibold transition-all"
+                style={{ background: isErasing ? accent : "transparent", color: isErasing ? "#fff" : iconColor }}
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.24 3.56l4.2 4.2a2 2 0 010 2.83l-9.9 9.9a2 2 0 01-2.83 0l-4.2-4.2a2 2 0 010-2.83l9.9-9.9a2 2 0 012.83 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 21h12M9.7 14.7l4.6 4.6" />
+                </svg>
+                <span className="hidden sm:inline">{isErasing ? "Erasing" : "Erase"}</span>
+              </button>
+            );
+          })()}
+
+          <Sep isDark={isDark} />
+
           {/* Show/hide text */}
           <button
             onClick={() => setShowText(v => !v)}
