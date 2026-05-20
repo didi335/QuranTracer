@@ -267,8 +267,10 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
           return;
         }
 
-        /* Pen (Apple Pencil / stylus): always draw */
+        /* Pen (Apple Pencil / stylus): only draws when Draw Mode is ON,
+           same as finger. */
         if (e.pointerType === "pen") {
+          if (!drawModeRef.current) return;
           e.preventDefault();
           startDrawing(getCanvasPoint(e.clientX, e.clientY, e.pressure > 0 ? e.pressure : 0.5));
           try { el.setPointerCapture(e.pointerId); } catch {}
