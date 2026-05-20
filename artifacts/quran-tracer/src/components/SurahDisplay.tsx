@@ -53,11 +53,19 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
       undo, clear, clearHistory, downloadAsImage, getCanvasPoint, isDrawing,
     } = useCanvas(penSettings, dummyRef);
 
-    /* ── All pages in current surah ──────────────────────────── */
+    /* ── Pages to render: a window around currentPage ─────────
+       Rendering an entire surah (e.g. Al-Baqarah = 48 pages) makes the
+       scroll content taller than browsers can size a canvas (~32767 px
+       max), which causes the drawing canvas overlay to become invalid
+       and hide the text beneath it. A page window keeps things sane
+       while still allowing continuous scroll within a surah. */
+    const PAGE_WINDOW = 2;
     const rangePages = useMemo(() => {
       if (!surahRange) return [currentPage];
+      const lo = Math.max(surahRange.start, currentPage - PAGE_WINDOW);
+      const hi = Math.min(surahRange.end,   currentPage + PAGE_WINDOW);
       const pages: number[] = [];
-      for (let p = surahRange.start; p <= surahRange.end; p++) pages.push(p);
+      for (let p = lo; p <= hi; p++) pages.push(p);
       return pages;
     }, [surahRange, currentPage]);
 
