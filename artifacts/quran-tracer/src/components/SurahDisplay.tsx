@@ -134,18 +134,12 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
 
     /* ── Clear canvas + reset scroll when surah changes ─────── */
     const prevSurahStart = useRef<number | null>(null);
-    /* Use a ref to know whether the next currentPage change was
-       triggered by the user scrolling (so we don't re-scroll) */
-    const scrollTriggeredRef = useRef(false);
     useEffect(() => {
       const newStart = surahRange?.start ?? null;
       if (newStart !== prevSurahStart.current) {
         prevSurahStart.current = newStart;
         clearHistory();
-        /* Jump instantly to top so the surah header is visible.
-           Suppress the next currentPage scroll-to-section effect that
-           would otherwise jump past the header to the first page. */
-        scrollTriggeredRef.current = true;
+        /* Jump instantly to top */
         if (scrollRef.current) {
           scrollRef.current.scrollTop = 0;
         }
@@ -153,7 +147,10 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
     }, [surahRange, clearHistory]);
 
     /* ── Scroll tracking: update currentPage as user scrolls ── */
-    const scrollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    /* Use a ref to know whether the next currentPage change was
+       triggered by the user scrolling (so we don't re-scroll) */
+    const scrollTriggeredRef = useRef(false);
+    const scrollTimer        = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const onScroll = useCallback(() => {
       if (scrollTimer.current) clearTimeout(scrollTimer.current);
@@ -481,7 +478,7 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
                   <div style={{ flex: 1, maxWidth: "12%", height: 1, background: dividerColor, opacity: 0.6, transform: "translateY(0.08em)" }} />
                   <div style={{
                     fontFamily: '"Amiri Quran", "Amiri", serif',
-                    fontSize: "clamp(32px, 4vw, 45px)",
+                    fontSize: "clamp(27px, 4vw, 45px)",
                     fontWeight: 400,
                     color: accentColor,
                     textAlign: "center",
@@ -649,14 +646,14 @@ function PageSection({
     return result;
   }, [filteredVerses, chapterMap]);
 
-  const textColor  = isDark ? "rgba(220,210,185,0.60)" : "rgba(26,26,46,0.60)";
+  const textColor  = isDark ? "rgba(220,210,185,0.40)" : "rgba(26,26,46,0.40)";
   const fontFamily = `"QPC_P${page}", "Amiri Quran", serif`;
   const opacity    = showText ? 1 : 0;
   const transition = "opacity 0.2s ease";
 
   if (!filteredVerses.length) {
     return (
-      <div style={{ display: "flex", justifyContent: "center", padding: "3rem 5%", opacity: 0.8 }}>
+      <div style={{ display: "flex", justifyContent: "center", padding: "3rem 5%", opacity: 0.4 }}>
         <div style={{
           width: 24, height: 24, borderRadius: "50%",
           border: `2px solid ${accentColor}`, borderTopColor: "transparent",
@@ -667,7 +664,7 @@ function PageSection({
   }
 
   return (
-    <div style={{ padding: isFirstOfSurah ? "0.5rem clamp(0.4rem, 2.5%, 3rem) 0" : "1.5rem clamp(0.4rem, 2.5%, 3rem) 0", userSelect: "none", pointerEvents: "none" }}>
+    <div style={{ padding: isFirstOfSurah ? "0.5rem clamp(0.5rem, 3%, 3rem) 0" : "1.5rem clamp(0.5rem, 3%, 3rem) 0", userSelect: "none", pointerEvents: "none" }}>
       <div style={{
         display: "flex", flexDirection: "column",
         maxWidth: 960, margin: "0 auto",
@@ -687,30 +684,22 @@ function PageSection({
             )}
             <div style={{
               fontFamily,
-              fontSize:    page <= 2 ? "clamp(30px, 4.0vw, 46px)" : "clamp(24px, 3.2vw, 38px)",
-              lineHeight:  1.9,
+              fontSize:    page <= 2 ? "clamp(38px, 6.2vw, 68px)" : "clamp(34px, 5.2vw, 58px)",
+              lineHeight:  2.2,
               color:       textColor,
-              textAlign:   page <= 2 ? "center" : "justify",
-              textAlignLast: page <= 2 ? "center" : "justify",
+              textAlign:   "center",
               direction:   "rtl",
               unicodeBidi: "bidi-override",
-              overflowWrap: "break-word",
-              wordBreak:    "normal",
-              maxWidth:     page <= 2 ? "75%" : "78%",
-              margin:       "0 auto",
-              wordSpacing:  "-0.15em",
             }}>
               {pl.words.map((w, wi) => (
-                <span key={w.id}>
-                  {wi > 0 && " "}
-                  <span
-                    style={{
-                      color: w.char_type_name === "end" ? accentColor : textColor,
-                      display: "inline-block",
-                    }}
-                  >
-                    {w.code_v2}
-                  </span>
+                <span
+                  key={w.id}
+                  style={{
+                    color: w.char_type_name === "end" ? accentColor : textColor,
+                    marginInlineStart: wi > 0 ? "0.03em" : 0,
+                  }}
+                >
+                  {w.code_v2}
                 </span>
               ))}
             </div>
