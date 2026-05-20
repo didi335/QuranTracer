@@ -767,7 +767,7 @@ function PageSection({
                     marginInlineStart: wi > 0 ? "0.03em" : 0,
                   }}
                 >
-                  {w.text_uthmani}
+                  {w.code_v2}
                 </span>
               ))}
             </div>
