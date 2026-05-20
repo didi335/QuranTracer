@@ -40,16 +40,17 @@ export function SurahNav({
       {currentChapter && (
         <div className="pb-3 border-b" style={{ borderColor: isDark ? "#2a2a4e" : "#e8e3d5" }}>
           <p className={`text-xs font-semibold uppercase tracking-wider mb-1 ${mutedText}`}>Current</p>
-          <p className={`text-sm font-bold ${goldText}`}>
-            {currentChapter.id}. {currentChapter.name_simple}
-          </p>
-          <p
-            dir="rtl"
-            className="mt-0.5"
-            style={{ fontFamily: '"Amiri Quran", "Scheherazade New", "Amiri", serif', fontSize: "1.2rem", color: isDark ? "#d4af37" : "#1a5276" }}
-          >
-            {currentChapter.name_arabic}
-          </p>
+          <div className="flex items-center justify-between gap-2">
+            <p className={`text-sm font-bold ${goldText}`}>
+              {currentChapter.id}. {currentChapter.name_simple}
+            </p>
+            <p
+              dir="rtl"
+              style={{ fontFamily: '"Amiri Quran", "Scheherazade New", "Amiri", serif', fontSize: "1.2rem", lineHeight: 1, color: isDark ? "#d4af37" : "#1a5276", flexShrink: 0 }}
+            >
+              {currentChapter.name_arabic}
+            </p>
+          </div>
           <p className={`text-xs mt-0.5 ${mutedText}`}>
             {currentChapter.translated_name.name} · {currentChapter.verses_count} ayahs ·{" "}
             <span className="capitalize">{currentChapter.revelation_place}</span>
