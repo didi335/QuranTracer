@@ -469,13 +469,29 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
           {/* ── Surah header (once at the very top) ─────────── */}
           {chapter && (
             <div style={{ opacity, transition }}>
-              {/* Large calligraphic header */}
+              {/* Large calligraphic header — flanked by prev/next surah buttons */}
               <div style={{
-                display: "flex", alignItems: "stretch", justifyContent: "center", gap: "1.5rem",
+                display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem",
                 padding: "clamp(4rem, 6vw, 5rem) 5% clamp(2rem, 3.5vw, 3rem)",
                 borderBottom: `1px solid ${dividerColor}`,
                 marginBottom: "0.5rem",
               }}>
+                {prevChapter ? (
+                  <SurahArrowBtn
+                    direction="prev"
+                    name={prevChapter.name_simple}
+                    accentColor={accentColor}
+                    mutedColor={mutedColor}
+                    dividerColor={dividerColor}
+                    bgCard={bgCard}
+                    onClick={() => onSelectSurah(prevChapter)}
+                  />
+                ) : <div style={{ width: 44 }} />}
+
+                <div style={{
+                  display: "flex", alignItems: "stretch", justifyContent: "center", gap: "1.5rem",
+                  flex: 1,
+                }}>
                 <div style={{
                   fontFamily: '"Amiri Quran", "Amiri", serif',
                   fontSize: "clamp(40px, 5.5vw, 64px)",
@@ -501,6 +517,19 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
                     {chapter.revelation_place === "makkah" ? "Makki" : "Madani"} · {chapter.verses_count} Ayahs
                   </div>
                 </div>
+                </div>
+
+                {nextChapter ? (
+                  <SurahArrowBtn
+                    direction="next"
+                    name={nextChapter.name_simple}
+                    accentColor={accentColor}
+                    mutedColor={mutedColor}
+                    dividerColor={dividerColor}
+                    bgCard={bgCard}
+                    onClick={() => onSelectSurah(nextChapter)}
+                  />
+                ) : <div style={{ width: 44 }} />}
               </div>
 
               {/* Bismillah — large calligraphic style like quran.com */}
@@ -525,43 +554,6 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
                   <div style={{ flex: 1, maxWidth: "12%", height: 1, background: dividerColor, opacity: 0.6, transform: "translateY(0.08em)" }} />
                 </div>
               )}
-            </div>
-          )}
-
-          {/* ── Top: prev / next surah (mirrors the footer) ──── */}
-          {(prevChapter || nextChapter) && (
-            <div style={{
-              display: "flex", justifyContent: "space-between", alignItems: "stretch",
-              gap: "0.75rem", padding: "0.5rem 5% 1rem",
-              opacity, transition,
-            }}>
-              {prevChapter ? (
-                <SurahNavBtn
-                  label="← Previous"
-                  name={prevChapter.name_simple}
-                  arabic={prevChapter.name_arabic}
-                  align="left"
-                  accentColor={accentColor}
-                  mutedColor={mutedColor}
-                  dividerColor={dividerColor}
-                  bgCard={bgCard}
-                  onClick={() => onSelectSurah(prevChapter)}
-                />
-              ) : <div style={{ flex: 1 }} />}
-
-              {nextChapter ? (
-                <SurahNavBtn
-                  label="Next →"
-                  name={nextChapter.name_simple}
-                  arabic={nextChapter.name_arabic}
-                  align="right"
-                  accentColor={accentColor}
-                  mutedColor={mutedColor}
-                  dividerColor={dividerColor}
-                  bgCard={bgCard}
-                  onClick={() => onSelectSurah(nextChapter)}
-                />
-              ) : <div style={{ flex: 1 }} />}
             </div>
           )}
 
@@ -805,6 +797,47 @@ function MidPageBanner({ chapter, isDark, accentColor, mutedColor, dividerColor 
         {chapter.name_arabic}
       </div>
     </div>
+  );
+}
+
+/* ── Compact arrow button for prev/next surah next to the title ─ */
+function SurahArrowBtn({ direction, name, accentColor, mutedColor, dividerColor, bgCard, onClick }: {
+  direction: "prev" | "next"; name: string;
+  accentColor: string; mutedColor: string; dividerColor: string; bgCard: string;
+  onClick: () => void;
+}) {
+  const isPrev = direction === "prev";
+  return (
+    <button
+      onClick={onClick}
+      title={`${isPrev ? "Previous" : "Next"} surah: ${name}`}
+      aria-label={`${isPrev ? "Previous" : "Next"} surah: ${name}`}
+      style={{
+        display: "flex", alignItems: "center", gap: "0.5rem",
+        padding: "0.55rem 0.85rem",
+        border: `1px solid ${dividerColor}`,
+        borderRadius: 999,
+        background: bgCard,
+        color: accentColor,
+        cursor: "pointer",
+        pointerEvents: "auto",
+        flexShrink: 0,
+        transition: "opacity 0.15s",
+        flexDirection: isPrev ? "row" : "row-reverse",
+      }}
+      onMouseEnter={e => (e.currentTarget.style.opacity = "0.75")}
+      onMouseLeave={e => (e.currentTarget.style.opacity = "1")}
+    >
+      <span style={{ fontSize: 18, lineHeight: 1, color: accentColor }}>
+        {isPrev ? "←" : "→"}
+      </span>
+      <span style={{
+        fontSize: 13, fontWeight: 600, color: mutedColor,
+        maxWidth: "10ch", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+      }}>
+        {name}
+      </span>
+    </button>
   );
 }
 
