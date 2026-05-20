@@ -647,7 +647,7 @@ function PageSection({
   }, [filteredVerses, chapterMap]);
 
   const textColor  = isDark ? "rgba(220,210,185,0.40)" : "rgba(26,26,46,0.40)";
-  const fontFamily = `"Amiri Quran", "Scheherazade New", "Amiri", serif`;
+  const fontFamily = `"QPC_P${page}", "Amiri Quran", serif`;
   const opacity    = showText ? 1 : 0;
   const transition = "opacity 0.2s ease";
 
@@ -684,7 +684,7 @@ function PageSection({
             )}
             <div style={{
               fontFamily,
-              fontSize:    page <= 2 ? "clamp(34px, 5.6vw, 60px)" : "clamp(30px, 4.6vw, 52px)",
+              fontSize:    page <= 2 ? "clamp(30px, 5vw, 52px)" : "clamp(26px, 4vw, 46px)",
               lineHeight:  2.2,
               color:       textColor,
               textAlign:   "center",
@@ -699,7 +699,7 @@ function PageSection({
                     marginInlineStart: wi > 0 ? "0.03em" : 0,
                   }}
                 >
-                  {w.text_uthmani}
+                  {w.code_v2}
                 </span>
               ))}
             </div>
