@@ -687,26 +687,26 @@ function PageSection({
             )}
             <div style={{
               fontFamily,
-              fontSize:    page <= 2 ? "clamp(38px, 5.4vw, 64px)" : "clamp(34px, 4.6vw, 54px)",
-              lineHeight:  2.2,
+              fontSize:    page <= 2 ? "clamp(34px, 4.8vw, 56px)" : "clamp(30px, 4.2vw, 48px)",
+              lineHeight:  2.0,
               color:       textColor,
-              textAlign:   "center",
               direction:   "rtl",
-              unicodeBidi: "bidi-override",
-              overflowWrap: "break-word",
-              wordBreak:    "normal",
+              display:     "flex",
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems:  "baseline",
+              width:       "100%",
             }}>
-              {pl.words.map((w, wi) => (
-                <span key={w.id}>
-                  {wi > 0 && " "}
-                  <span
-                    style={{
-                      color: w.char_type_name === "end" ? accentColor : textColor,
-                      display: "inline-block",
-                    }}
-                  >
-                    {w.code_v2}
-                  </span>
+              {pl.words.map((w) => (
+                <span
+                  key={w.id}
+                  style={{
+                    color: w.char_type_name === "end" ? accentColor : textColor,
+                    display: "inline-block",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {w.code_v2}
                 </span>
               ))}
             </div>
