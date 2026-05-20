@@ -528,6 +528,43 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
             </div>
           )}
 
+          {/* ── Top: prev / next surah (mirrors the footer) ──── */}
+          {(prevChapter || nextChapter) && (
+            <div style={{
+              display: "flex", justifyContent: "space-between", alignItems: "stretch",
+              gap: "0.75rem", padding: "0.5rem 5% 1rem",
+              opacity, transition,
+            }}>
+              {prevChapter ? (
+                <SurahNavBtn
+                  label="← Previous"
+                  name={prevChapter.name_simple}
+                  arabic={prevChapter.name_arabic}
+                  align="left"
+                  accentColor={accentColor}
+                  mutedColor={mutedColor}
+                  dividerColor={dividerColor}
+                  bgCard={bgCard}
+                  onClick={() => onSelectSurah(prevChapter)}
+                />
+              ) : <div style={{ flex: 1 }} />}
+
+              {nextChapter ? (
+                <SurahNavBtn
+                  label="Next →"
+                  name={nextChapter.name_simple}
+                  arabic={nextChapter.name_arabic}
+                  align="right"
+                  accentColor={accentColor}
+                  mutedColor={mutedColor}
+                  dividerColor={dividerColor}
+                  bgCard={bgCard}
+                  onClick={() => onSelectSurah(nextChapter)}
+                />
+              ) : <div style={{ flex: 1 }} />}
+            </div>
+          )}
+
           {/* ── Page sections ────────────────────────────────── */}
           {rangePages.map((page, idx) => (
             <div
