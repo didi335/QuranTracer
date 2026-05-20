@@ -181,14 +181,22 @@ export function useCanvas(penSettings: PenSettings, _containerRef: RefObject<HTM
          quadratic midpoint curve below gives a noticeably smoother
          feel than raw samples alone. */
       const prev = stroke.points[stroke.points.length - 1];
-      const alpha = 0.55; // weight of the new sample
-      const point: Point = prev
-        ? {
-            x: prev.x * (1 - alpha) + rawPoint.x * alpha,
-            y: prev.y * (1 - alpha) + rawPoint.y * alpha,
-            pressure: rawPoint.pressure,
-          }
-        : rawPoint;
+      /* Adaptive smoothing: very light blend for fast motion (so the
+         pen tip stays pinned under the user's hand), more blend only
+         for tiny movements where jitter dominates. This eliminates
+         the visible "lag behind the tip" feeling of a heavy EMA. */
+      let point: Point = rawPoint;
+      if (prev) {
+        const dx = rawPoint.x - prev.x;
+        const dy = rawPoint.y - prev.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const alpha = dist > 8 ? 1 : 0.85;          // mostly raw
+        point = alpha === 1 ? rawPoint : {
+          x: prev.x * (1 - alpha) + rawPoint.x * alpha,
+          y: prev.y * (1 - alpha) + rawPoint.y * alpha,
+          pressure: rawPoint.pressure,
+        };
+      }
 
       stroke.points.push(point);
       const pts = stroke.points;
