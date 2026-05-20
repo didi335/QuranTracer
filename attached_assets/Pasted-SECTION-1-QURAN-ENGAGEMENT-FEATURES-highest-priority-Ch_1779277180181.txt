@@ -1,0 +1,80 @@
+SECTION 1 — QURAN ENGAGEMENT FEATURES (highest priority)
+Check and fix each of these:
+
+ User can trace full Surahs from start to finish without the canvas breaking
+ User can switch between Surahs easily from a menu or dropdown
+ Quran text is accurate (pulled from a real Quran API)
+ Ayah numbers are displayed and accurate
+ Quran text is large, readable, and properly spaced for tracing
+ Add a hide/show text toggle button so users can practice from memory
+ Add Memorization Mode with three stages: full opacity text → reduced opacity text → hidden text. Add a button to step through these three stages
+
+SECTION 2 — DEVICE COMPATIBILITY
+Fix all of these if broken:
+iPad:
+
+ Apple Pencil draws smooth continuous strokes
+ Finger drawing works and does not scroll the page while tracing
+ Finger scrolling works when NOT in draw mode
+ No Arabic text cut off on screen
+
+iPhone:
+
+ Page scrolls normally
+ Tracing works with finger
+ Controls are floating and do not take up permanent space
+ Arabic text not cut off
+
+Desktop:
+
+ Mouse drawing works
+ Trackpad scrolling works
+ Keyboard scrolling works
+
+SECTION 3 — STABILITY (fix all crashes and bugs)
+
+ App loads without errors
+ No broken pages or blank screens
+ Surah switching works every time without duplicates or merging bugs
+ Drawing saves correctly
+ No lag during scrolling
+ No lag during tracing
+ No overlapping UI elements
+ Header is centered
+ No weird empty spaces in layout
+
+SECTION 4 — API INTEGRATION (required for judging)
+
+ Quran text is loaded from a real Quran Content API, not hardcoded
+ Ayah numbers come from the API
+ Add at least one User API feature — the easiest is bookmarking. Let users bookmark a Surah or ayah and restore it on reload
+ If time allows, add audio playback using an audio API
+
+SECTION 5 — INNOVATION FEATURES (pick at least one)
+Add at least one of these:
+
+ Progress tracker showing how many ayahs traced
+ Daily streak counter saved to localStorage
+ Trace replay that shows the user's stroke back to them
+ Save favorite Surahs list
+
+SECTION 6 — FINAL CHECKS BEFORE DEMO
+Run through this before submitting:
+
+ App loads in under 3 seconds
+ Selecting a Surah loads the correct text
+ Scrolling is smooth
+ Tracing works with finger, Apple Pencil, and mouse
+ Memorization mode steps through correctly
+ No visual bugs, no cutoff text, no overlapping elements
+ App works on iPad, iPhone, and desktop browser
+ Surah selection is saved on reload via localStorage
+
+DO NOT:
+
+Redesign the layout
+Add random new UI sections not listed above
+Break anything that is currently working
+Change fonts or colors unless something is unreadable
+
+Work through each section in order. Fix stability first, then features, then polish.

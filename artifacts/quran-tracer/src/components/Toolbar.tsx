@@ -10,8 +10,9 @@ const PRESET_COLORS = [
 interface ToolbarProps {
   penSettings: PenSettings;
   onPenChange: (settings: Partial<PenSettings>) => void;
-  showText: boolean;
-  onToggleText: () => void;
+  textOpacity: number;
+  textStageLabel: string;
+  onCycleTextStage: () => void;
   onUndo: () => void;
   onClear: () => void;
   onDownload: () => void;
@@ -23,8 +24,9 @@ interface ToolbarProps {
 export function Toolbar({
   penSettings,
   onPenChange,
-  showText,
-  onToggleText,
+  textOpacity,
+  textStageLabel,
+  onCycleTextStage,
   onUndo,
   onClear,
   onDownload,
@@ -32,6 +34,8 @@ export function Toolbar({
   onToggleDark,
   compact,
 }: ToolbarProps) {
+  const textHidden = textOpacity === 0;
+  const textFull   = textOpacity >= 1;
   const mutedText = isDark ? "text-[#a0a0c0]" : "text-[#7f8c8d]";
   const accentColor = isDark ? "#d4af37" : "#1a5276";
   const dividerColor = isDark ? "#2a2a4e" : "#e8e3d5";
@@ -146,20 +150,22 @@ export function Toolbar({
         <label className={`text-xs font-semibold uppercase tracking-wider mb-3 block ${mutedText}`}>Actions</label>
         <div className="flex flex-col gap-2">
           <button
-            onClick={onToggleText}
+            onClick={onCycleTextStage}
+            title="Cycle: Trace → Faded → Memory"
             className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium transition-all active:scale-95 ${
-              showText
+              textFull
                 ? isDark ? "bg-[#d4af37] text-[#1a1a2e]" : "bg-[#1a5276] text-white"
                 : btnBase
             }`}
           >
             <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              {showText
-                ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+              {textHidden
+                ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
               }
             </svg>
-            {showText ? "Hide Text" : "Show Text"}
+            <span className="flex-1 text-left">Memorize: {textStageLabel}</span>
+            <span className="text-xs opacity-60">{textFull ? "1/3" : textHidden ? "3/3" : "2/3"}</span>
           </button>
 
           <button onClick={onUndo} className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium transition-all active:scale-95 ${btnBase}`}>
