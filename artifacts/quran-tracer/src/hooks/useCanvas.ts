@@ -39,11 +39,14 @@ export function useCanvas(
   _containerRef: RefObject<HTMLElement | null>,
   storageKey?: string,
 ) {
+  /* sessionStorage (not localStorage) — writing persists across tab
+     switches, navigations, and refreshes within the same tab, but is
+     wiped automatically when the tab is closed. */
   const STORAGE_PREFIX = "quran-tracer:strokes:";
   const persist = useCallback((list: Stroke[]) => {
     if (!storageKey) return;
     try {
-      localStorage.setItem(STORAGE_PREFIX + storageKey, JSON.stringify(list));
+      sessionStorage.setItem(STORAGE_PREFIX + storageKey, JSON.stringify(list));
     } catch {
       /* quota exceeded or storage disabled — silently ignore */
     }
@@ -184,7 +187,7 @@ export function useCanvas(
       return;
     }
     try {
-      const raw = localStorage.getItem(STORAGE_PREFIX + storageKey);
+      const raw = sessionStorage.getItem(STORAGE_PREFIX + storageKey);
       strokes.current   = raw ? (JSON.parse(raw) as Stroke[]) : [];
     } catch {
       strokes.current = [];
