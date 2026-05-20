@@ -40,7 +40,7 @@ export function SurahNav({
       {currentChapter && (
         <div className="pb-3 border-b" style={{ borderColor: isDark ? "#2a2a4e" : "#e8e3d5" }}>
           <p className={`text-xs font-semibold uppercase tracking-wider mb-1 ${mutedText}`}>Current</p>
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex items-baseline gap-2">
             <p className={`text-sm font-bold ${goldText}`}>
               {currentChapter.id}. {currentChapter.name_simple}
             </p>
