@@ -275,9 +275,10 @@ export default function TracerPage() {
                 className="flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-full text-xs font-semibold transition-all"
                 style={{ background: isErasing ? accent : "transparent", color: isErasing ? "#fff" : iconColor }}
               >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.24 3.56l4.2 4.2a2 2 0 010 2.83l-9.9 9.9a2 2 0 01-2.83 0l-4.2-4.2a2 2 0 010-2.83l9.9-9.9a2 2 0 012.83 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 21h12M9.7 14.7l4.6 4.6" />
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21" />
+                  <path d="M22 21H7" />
+                  <path d="m5 11 9 9" />
                 </svg>
                 <span className="hidden sm:inline">{isErasing ? "Erasing" : "Erase"}</span>
               </button>
