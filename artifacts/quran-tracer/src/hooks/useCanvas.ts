@@ -175,7 +175,7 @@ export function useCanvas(penSettings: PenSettings, containerRef: RefObject<HTML
     ctx.globalAlpha = 1;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     const snap = history.current.pop();
-    if (snap) ctx.drawImage(snap, 0, 0);
+    if (snap instanceof HTMLCanvasElement) ctx.drawImage(snap, 0, 0);
     ctx.restore();
   }, [getContext]);
 
