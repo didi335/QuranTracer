@@ -250,28 +250,50 @@ export default function TracerPage() {
             </svg>
           </button>
 
-          {/* Trace Mode toggle (finger = trace when ON, scroll when OFF) */}
-          <button
-            onClick={() => setDrawMode(v => !v)}
-            title={drawMode ? "Trace Mode ON (finger traces)" : "Trace Mode OFF (finger scrolls)"}
-            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-full text-xs font-semibold transition-all"
-            style={{ background: drawMode ? accent : "transparent", color: drawMode ? "#fff" : iconColor }}
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-            </svg>
-            <span className="hidden sm:inline">Trace</span>
-          </button>
+          {/* Trace and Erase are mutually exclusive: each turns drawing on
+              with its own mode, and they visually highlight one-at-a-time.
+              Tapping the active one again returns to scroll mode. */}
+          {(() => {
+            const isTracing = drawMode && penSettings.mode === "pen";
+            return (
+              <button
+                onClick={() => {
+                  if (isTracing) {
+                    setDrawMode(false);
+                  } else {
+                    setPenSettings(s => ({ ...s, mode: "pen" }));
+                    setDrawMode(true);
+                  }
+                }}
+                title={isTracing ? "Trace Mode ON (finger traces)" : "Trace Mode OFF (finger scrolls)"}
+                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-full text-xs font-semibold transition-all"
+                style={{ background: isTracing ? accent : "transparent", color: isTracing ? "#fff" : iconColor }}
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+                <span className="hidden sm:inline">Trace</span>
+              </button>
+            );
+          })()}
 
           <Sep isDark={isDark} />
 
-          {/* Eraser toggle */}
+          {/* Eraser toggle — mutually exclusive with Trace */}
           {(() => {
-            const isErasing = penSettings.mode === "eraser";
+            const isErasing = drawMode && penSettings.mode === "eraser";
             return (
               <button
-                onClick={() => setPenSettings(s => ({ ...s, mode: s.mode === "eraser" ? "pen" : "eraser" }))}
-                title={isErasing ? "Switch to pen" : "Eraser"}
+                onClick={() => {
+                  if (isErasing) {
+                    setDrawMode(false);
+                    setPenSettings(s => ({ ...s, mode: "pen" }));
+                  } else {
+                    setPenSettings(s => ({ ...s, mode: "eraser" }));
+                    setDrawMode(true);
+                  }
+                }}
+                title={isErasing ? "Stop erasing" : "Eraser"}
                 className="flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-full text-xs font-semibold transition-all"
                 style={{ background: isErasing ? accent : "transparent", color: isErasing ? "#fff" : iconColor }}
               >
