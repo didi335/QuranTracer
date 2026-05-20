@@ -647,7 +647,7 @@ function PageSection({
   }, [filteredVerses, chapterMap]);
 
   const textColor  = isDark ? "rgba(220,210,185,0.40)" : "rgba(26,26,46,0.40)";
-  const fontFamily = `"QPC_P${page}", "Amiri Quran", serif`;
+  const fontFamily = `"Amiri Quran", "Scheherazade New", "Amiri", serif`;
   const opacity    = showText ? 1 : 0;
   const transition = "opacity 0.2s ease";
 
@@ -699,7 +699,7 @@ function PageSection({
                     marginInlineStart: wi > 0 ? "0.03em" : 0,
                   }}
                 >
-                  {w.code_v2}
+                  {w.text_uthmani}
                 </span>
               ))}
             </div>
