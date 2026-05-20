@@ -1,5 +1,5 @@
 import {
-  useEffect, useRef, useCallback, forwardRef,
+  useEffect, useLayoutEffect, useRef, useCallback, forwardRef,
   useImperativeHandle, useMemo,
 } from "react";
 import { Verse, Chapter, Word, TOTAL_PAGES } from "@/services/quranApi";
@@ -59,7 +59,7 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
        max), which causes the drawing canvas overlay to become invalid
        and hide the text beneath it. A page window keeps things sane
        while still allowing continuous scroll within a surah. */
-    const PAGE_WINDOW = 2;
+    const PAGE_WINDOW = 3;
     const rangePages = useMemo(() => {
       if (!surahRange) return [currentPage];
       const lo = Math.max(surahRange.start, currentPage - PAGE_WINDOW);
@@ -160,6 +160,14 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
     const scrollTriggeredRef = useRef(false);
     const scrollTimer        = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+    /* When the page window shifts mid-scroll (a page is unmounted at
+       the top to keep the canvas a sane size), the content above the
+       reader collapses and the viewport would jump. Snapshot the new
+       current-page section's offsetTop BEFORE setState, then in a
+       layout effect adjust scrollTop by the delta so the reader's view
+       stays anchored to the same Arabic line they were looking at. */
+    const scrollAnchor = useRef<{ page: number; offsetTop: number } | null>(null);
+
     const onScroll = useCallback(() => {
       if (scrollTimer.current) clearTimeout(scrollTimer.current);
       scrollTimer.current = setTimeout(() => {
@@ -179,12 +187,30 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
         });
 
         if (closestPage !== -1 && closestPage !== currentPage) {
+          const newSection = sectionRefs.current.get(closestPage);
+          if (newSection) {
+            scrollAnchor.current = { page: closestPage, offsetTop: newSection.offsetTop };
+          }
           scrollTriggeredRef.current = true;
           onPageChange(closestPage);
         }
       }, 80);
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentPage, onPageChange]);
+
+    /* ── Preserve scroll across page-window shifts ──────────────
+       Runs synchronously after DOM commit (before paint), so the
+       browser never paints the shifted-but-uncorrected frame. */
+    useLayoutEffect(() => {
+      const anchor = scrollAnchor.current;
+      if (!anchor || anchor.page !== currentPage) return;
+      const el = scrollRef.current;
+      const section = sectionRefs.current.get(currentPage);
+      if (!el || !section) return;
+      const delta = section.offsetTop - anchor.offsetTop;
+      if (delta !== 0) el.scrollTop += delta;
+      scrollAnchor.current = null;
+    });
 
     /* ── When currentPage changes externally, scroll to section ─ */
     useEffect(() => {
