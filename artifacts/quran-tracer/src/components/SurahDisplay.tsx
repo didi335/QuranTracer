@@ -685,61 +685,33 @@ function PageSection({
                 dividerColor={dividerColor}
               />
             )}
-            {page <= 2 ? (
-              <div style={{
-                fontFamily,
-                fontSize:    "clamp(34px, 4.6vw, 54px)",
-                lineHeight:  2.2,
-                color:       textColor,
-                textAlign:   "center",
-                direction:   "rtl",
-                unicodeBidi: "bidi-override",
-                overflowWrap: "break-word",
-                wordBreak:    "normal",
-                maxWidth:     "85%",
-                margin:       "0 auto",
-              }}>
-                {pl.words.map((w, wi) => (
-                  <span key={w.id}>
-                    {wi > 0 && " "}
-                    <span
-                      style={{
-                        color: w.char_type_name === "end" ? accentColor : textColor,
-                        display: "inline-block",
-                      }}
-                    >
-                      {w.code_v2}
-                    </span>
-                  </span>
-                ))}
-              </div>
-            ) : (
-              <div style={{
-                fontFamily,
-                fontSize:    "clamp(30px, 4.2vw, 48px)",
-                lineHeight:  2.0,
-                color:       textColor,
-                direction:   "rtl",
-                display:     "flex",
-                flexDirection: "row",
-                justifyContent: "space-between",
-                alignItems:  "baseline",
-                width:       "100%",
-              }}>
-                {pl.words.map((w) => (
+            <div style={{
+              fontFamily,
+              fontSize:    page <= 2 ? "clamp(34px, 4.6vw, 54px)" : "clamp(30px, 4.2vw, 48px)",
+              lineHeight:  2.2,
+              color:       textColor,
+              textAlign:   "center",
+              direction:   "rtl",
+              unicodeBidi: "bidi-override",
+              overflowWrap: "break-word",
+              wordBreak:    "normal",
+              maxWidth:     page <= 2 ? "85%" : "100%",
+              margin:       "0 auto",
+            }}>
+              {pl.words.map((w, wi) => (
+                <span key={w.id}>
+                  {wi > 0 && " "}
                   <span
-                    key={w.id}
                     style={{
                       color: w.char_type_name === "end" ? accentColor : textColor,
                       display: "inline-block",
-                      whiteSpace: "nowrap",
                     }}
                   >
                     {w.code_v2}
                   </span>
-                ))}
-              </div>
-            )}
+                </span>
+              ))}
+            </div>
           </div>
         ))}
       </div>
