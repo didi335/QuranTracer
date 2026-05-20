@@ -1,0 +1,123 @@
+Fix the Surah switching/loading bug in the Quran tracing app.
+
+Current issue:
+- When switching to a different Surah, the app sometimes shows random Arabic letters/practice text instead of the actual Quran page.
+- The content appears broken, incorrect, or partially rendered.
+- This should NEVER happen.
+
+The app must ONLY display the correct Quran text from the API.
+
+========================
+1. FIX SURAH LOADING SYSTEM
+========================
+
+Current problem:
+- Surah switching is rendering incorrect placeholder/demo/test content
+OR
+- Old tracing/test data is leaking into the Quran page
+OR
+- Rendering state is corrupted during Surah change
+
+Fix:
+- Ensure ONLY authentic Quran API content is rendered
+- Clear incorrect temporary/practice content
+- Properly reload the selected Surah data
+
+Requirements:
+✅ Correct Surah loads every time  
+✅ No random Arabic practice letters  
+✅ No placeholder content  
+✅ No mixed Surahs  
+✅ No corrupted rendering  
+
+========================
+2. RESET TRACE LAYER ON SURAH CHANGE
+========================
+
+When changing Surahs:
+- Clear ONLY the tracing layer/canvas
+- DO NOT corrupt the Quran text layer
+
+Behavior:
+- Quran text updates to new Surah
+- Drawing canvas resets cleanly
+- No leftover strokes from previous Surah
+
+Requirements:
+✅ Clean transition between Surahs  
+✅ No old trace artifacts  
+✅ No broken rendering  
+
+========================
+3. VERIFY API DATA RENDERING
+========================
+
+Make sure the app is rendering:
+- The exact Quran text from the API
+- Correct ayah order
+- Correct page structure
+- Correct Surah metadata
+
+Check:
+- API mapping logic
+- Async loading states
+- Component rendering conditions
+
+Requirements:
+✅ Correct Arabic text  
+✅ Correct numbering  
+✅ Correct Surah titles  
+✅ No duplicated content  
+
+========================
+4. FIX LOADING + STATE MANAGEMENT
+========================
+
+Likely issue:
+- State is not resetting correctly during Surah switch
+- Old component state persists
+- Async race conditions
+
+Fix:
+- Properly clear old Surah state before rendering new Surah
+- Add safe loading states
+- Prevent partial renders
+
+Requirements:
+✅ Stable Surah switching  
+✅ No flashing broken text  
+✅ No stale content  
+✅ Clean loading transitions  
+
+========================
+5. KEEP CURRENT LAYOUT
+========================
+
+DO NOT redesign the app.
+
+Keep:
+✅ Current responsive layout  
+✅ Current text sizing  
+✅ Current tracing system  
+✅ Current controls  
+
+Only fix:
+- Broken Surah rendering/loading behavior
+
+========================
+6. FINAL QA TEST
+========================
+
+Confirm ALL work correctly:
+
+✅ Every Surah loads correctly  
+✅ No random Arabic practice text  
+✅ No corrupted rendering  
+✅ Correct Quran API content shown  
+✅ Correct ayah numbering  
+✅ Trace layer resets cleanly  
+✅ No leftover strokes  
+✅ Smooth Surah transitions  
+✅ Layout remains stable  
+
+The app should now behave like a real polished Quran application with reliable Surah loading and rendering.
