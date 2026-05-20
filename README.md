@@ -2,7 +2,7 @@
 
 An iPad-optimized web app for tracing Arabic Quranic text. Designed for students learning to write Arabic script — load any surah, then trace over the verses with an Apple Pencil, finger, or mouse.
 
-🔗 **Live app:** https://github.com/didi335/QuranTracer
+🔗 **Live app:** https://qurantracer.net/
 
 ## Features
 
