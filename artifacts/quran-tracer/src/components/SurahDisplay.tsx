@@ -51,6 +51,7 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
     const {
       canvasRef, startDrawing, draw, stopDrawing,
       undo, clear, clearHistory, downloadAsImage, getCanvasPoint, isDrawing,
+      renderAll,
     } = useCanvas(penSettings, dummyRef);
 
     /* ── Pages to render: a window around currentPage ─────────
@@ -100,25 +101,17 @@ export const SurahDisplay = forwardRef<SurahDisplayHandle, SurahDisplayProps>(
       if (!w || !h) return;
       const newW = Math.round(w * dpr);
       const newH = Math.round(h * dpr);
-      if (canvas.width === newW && canvas.height === newH) return; // no change — preserve drawing
-      /* Preserve existing strokes across canvas resize. Assigning
-         canvas.width/height clears the bitmap, so snapshot pixels first
-         and stamp them back at the same top-left origin afterward. */
-      const ctx = canvas.getContext("2d");
-      let snapshot: HTMLCanvasElement | null = null;
-      if (ctx && canvas.width > 0 && canvas.height > 0) {
-        snapshot = document.createElement("canvas");
-        snapshot.width  = canvas.width;
-        snapshot.height = canvas.height;
-        const sctx = snapshot.getContext("2d");
-        if (sctx) sctx.drawImage(canvas, 0, 0);
-      }
+      if (canvas.width === newW && canvas.height === newH) return; // no change
+      /* Don't snapshot/restore — assigning width/height clears the
+         bitmap, and the vector stroke log can redraw everything in
+         one pass. This avoids a multi-hundred-MB GPU buffer copy on
+         every resize event. */
       canvas.width        = newW;
       canvas.height       = newH;
       canvas.style.width  = `${w}px`;
       canvas.style.height = `${h}px`;
-      if (snapshot && ctx) ctx.drawImage(snapshot, 0, 0);
-    }, [canvasRef]);
+      renderAll();
+    }, [canvasRef, renderAll]);
 
     /* Re-sync whenever the content div resizes (pages/fonts loading in) */
     useEffect(() => {

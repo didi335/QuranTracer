@@ -1,4 +1,4 @@
-import { useRef, useCallback, useEffect, RefObject } from "react";
+import { useRef, useCallback, RefObject } from "react";
 
 export interface PenSettings {
   color:     string;
@@ -13,32 +13,49 @@ export interface Point {
   pressure?: number;
 }
 
-export function useCanvas(penSettings: PenSettings, containerRef: RefObject<HTMLElement | null>) {
+interface Stroke {
+  mode:      "pen" | "eraser";
+  color:     string;
+  opacity:   number;
+  width:     number;          /* pre-multiplied by dpr; constant per stroke */
+  points:    Point[];
+}
+
+/**
+ * Drawing engine — vector strokes, GPU canvas.
+ *
+ * Why a vector model:
+ * Snapshotting the full canvas before every stroke (the previous approach)
+ * allocated ~150MB of GPU memory per stroke on a tall iPad canvas and
+ * piled up dozens of those in the undo history. That swamped the GPU
+ * scheduler and made every new stroke appear seconds after it was drawn.
+ *
+ * Storing strokes as tiny JS objects costs effectively nothing. Undo
+ * pops the last stroke and replays the rest — fast for any realistic
+ * number of strokes (a typical tracing session is <200).
+ */
+export function useCanvas(penSettings: PenSettings, _containerRef: RefObject<HTMLElement | null>) {
   const canvasRef    = useRef<HTMLCanvasElement>(null);
   const isDrawing    = useRef(false);
-  const lastPoint    = useRef<Point | null>(null);
-  /* History as offscreen canvas snapshots (GPU-friendly) rather than
-     ImageData. ImageData forces a full GPU→CPU pixel readback on every
-     saveToHistory(), which on a 2000×10000 canvas is ~80MB per stroke
-     and was producing multi-second hitches between strokes. */
-  const history      = useRef<HTMLCanvasElement[]>([]);
-  const MAX_HISTORY  = 30;
 
-  /* Committed-state approach — eliminates per-segment opacity overlap */
-  const currentStrokePoints = useRef<Point[]>([]);
+  /* All committed strokes (used to redraw on resize and on undo) */
+  const strokes      = useRef<Stroke[]>([]);
+  /* Undo stack — each entry is a snapshot of `strokes` (shallow copy)
+     so that "Clear" is undoable too. Memory is tiny: just arrays of
+     stroke references. */
+  const undoStack    = useRef<Stroke[][]>([]);
+  const MAX_UNDO     = 50;
 
-  /* GPU-accelerated context. We only read pixels in saveToHistory()
-     (undo), which is infrequent — willReadFrequently:true would force
-     a CPU-backed bitmap and make every stroke segment slower. */
+  /* The stroke currently being drawn */
+  const currentStroke = useRef<Stroke | null>(null);
+
   const getContext = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return null;
     return canvas.getContext("2d");
   }, []);
 
-  /* Cap DPR at 2 so the canvas buffer doesn't balloon on 3x iPads.
-     The visual difference between 2x and 3x for ink strokes is
-     imperceptible, but the per-frame fill cost roughly doubles. */
+  /* Cap DPR at 2 so the canvas buffer doesn't balloon on 3x iPads. */
   const getDpr = () => Math.min(window.devicePixelRatio || 1, 2);
 
   const getCanvasPoint = useCallback(
@@ -47,83 +64,122 @@ export function useCanvas(penSettings: PenSettings, containerRef: RefObject<HTML
       const rect   = canvas.getBoundingClientRect();
       const dpr    = getDpr();
       return {
-        x: (clientX - rect.left)  * dpr,
-        y: (clientY - rect.top)   * dpr,
+        x: (clientX - rect.left) * dpr,
+        y: (clientY - rect.top)  * dpr,
         pressure,
       };
     },
     [],
   );
 
-  const saveToHistory = useCallback(() => {
+  /* Apply a stroke's style to the context. Called once per stroke,
+     never per segment. */
+  const applyStrokeStyle = (ctx: CanvasRenderingContext2D, s: Stroke) => {
+    if (s.mode === "eraser") {
+      ctx.globalCompositeOperation = "destination-out" as GlobalCompositeOperation;
+      ctx.globalAlpha = 1;
+    } else {
+      ctx.globalCompositeOperation = "source-over";
+      ctx.globalAlpha = s.opacity;
+      ctx.strokeStyle = s.color;
+      ctx.fillStyle   = s.color;
+    }
+    ctx.lineWidth = s.width;
+    ctx.lineCap   = "round";
+    ctx.lineJoin  = "round";
+  };
+
+  /* Draw an entire stroke from scratch (used on resize / undo) */
+  const renderStroke = (ctx: CanvasRenderingContext2D, s: Stroke) => {
+    const pts = s.points;
+    if (pts.length === 0) return;
+    applyStrokeStyle(ctx, s);
+
+    if (pts.length === 1) {
+      const p = pts[0];
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, Math.max(s.width / 2, 0.5), 0, Math.PI * 2);
+      ctx.fill();
+      return;
+    }
+
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].y);
+    if (pts.length === 2) {
+      ctx.lineTo(pts[1].x, pts[1].y);
+    } else {
+      /* Quadratic midpoint smoothing through all points */
+      for (let i = 1; i < pts.length - 1; i++) {
+        const midX = (pts[i].x + pts[i + 1].x) / 2;
+        const midY = (pts[i].y + pts[i + 1].y) / 2;
+        ctx.quadraticCurveTo(pts[i].x, pts[i].y, midX, midY);
+      }
+      const last = pts[pts.length - 1];
+      ctx.lineTo(last.x, last.y);
+    }
+    ctx.stroke();
+  };
+
+  /* Replay every stroke onto a freshly cleared canvas */
+  const renderAll = useCallback(() => {
+    const ctx    = getContext();
     const canvas = canvasRef.current;
-    if (!canvas || canvas.width === 0 || canvas.height === 0) return;
-    const snap = document.createElement("canvas");
-    snap.width  = canvas.width;
-    snap.height = canvas.height;
-    const sctx = snap.getContext("2d");
-    if (!sctx) return;
-    /* drawImage stays GPU-side; no CPU pixel readback. */
-    sctx.drawImage(canvas, 0, 0);
-    history.current.push(snap);
-    if (history.current.length > MAX_HISTORY) history.current.shift();
-  }, []);
+    if (!ctx || !canvas) return;
+    ctx.save();
+    ctx.globalCompositeOperation = "source-over";
+    ctx.globalAlpha = 1;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.restore();
+    for (const s of strokes.current) renderStroke(ctx, s);
+  }, [getContext]);
+
+  const pushUndo = () => {
+    /* Shallow copy of the strokes array — entries are reused references */
+    undoStack.current.push(strokes.current.slice());
+    if (undoStack.current.length > MAX_UNDO) undoStack.current.shift();
+  };
 
   const startDrawing = useCallback(
     (point: Point) => {
-      saveToHistory();
-      isDrawing.current           = true;
-      lastPoint.current           = point;
-      currentStrokePoints.current = [point];
-
-      /* Set stroke state ONCE per stroke — re-applying ctx.save/restore
-         and re-setting strokeStyle/lineCap/etc. on every coalesced
-         pointer sample was the main source of trace lag. */
       const ctx = getContext();
       if (!ctx) return;
       const dpr = getDpr();
-      if (penSettings.mode === "eraser") {
-        ctx.globalCompositeOperation = "destination-out" as GlobalCompositeOperation;
-        ctx.globalAlpha = 1;
-        ctx.lineWidth   = penSettings.thickness * 3 * dpr;
-      } else {
-        ctx.globalCompositeOperation = "source-over";
-        ctx.globalAlpha = penSettings.opacity;
-        ctx.strokeStyle = penSettings.color;
-        ctx.fillStyle   = penSettings.color;
-        /* Use a constant width per stroke based on the start pressure.
-           Re-deriving width per segment caused both extra work and
-           visually wobbly strokes on the iPad. */
-        ctx.lineWidth   = penSettings.thickness * (point.pressure ?? 0.5) * dpr;
-      }
-      ctx.lineCap  = "round";
-      ctx.lineJoin = "round";
+
+      const width = penSettings.mode === "eraser"
+        ? penSettings.thickness * 3 * dpr
+        : penSettings.thickness * (point.pressure ?? 0.5) * dpr;
+
+      const stroke: Stroke = {
+        mode:    penSettings.mode,
+        color:   penSettings.color,
+        opacity: penSettings.opacity,
+        width,
+        points:  [point],
+      };
+
+      pushUndo();
+      strokes.current.push(stroke);
+      currentStroke.current = stroke;
+      isDrawing.current     = true;
+
+      /* Set state once for the whole stroke */
+      applyStrokeStyle(ctx, stroke);
     },
-    [saveToHistory, getContext, penSettings],
+    [getContext, penSettings],
   );
 
   const draw = useCallback(
     (point: Point) => {
-      if (!isDrawing.current || !lastPoint.current) return;
-      const ctx = getContext();
-      if (!ctx) return;
+      if (!isDrawing.current) return;
+      const ctx    = getContext();
+      const stroke = currentStroke.current;
+      if (!ctx || !stroke) return;
 
-      /* ── Eraser ── */
-      if (penSettings.mode === "eraser") {
-        ctx.beginPath();
-        ctx.moveTo(lastPoint.current.x, lastPoint.current.y);
-        ctx.lineTo(point.x, point.y);
-        ctx.stroke();
-        lastPoint.current = point;
-        currentStrokePoints.current.push(point);
-        return;
-      }
-
-      /* ── Pen: incremental segment drawing with midpoint smoothing. */
-      currentStrokePoints.current.push(point);
-      const pts = currentStrokePoints.current;
+      stroke.points.push(point);
+      const pts = stroke.points;
       const n   = pts.length;
 
+      /* Incremental segment — draw only the newest piece */
       ctx.beginPath();
       if (n === 2) {
         ctx.moveTo(pts[0].x, pts[0].y);
@@ -138,64 +194,61 @@ export function useCanvas(penSettings: PenSettings, containerRef: RefObject<HTML
         ctx.quadraticCurveTo(p1.x, p1.y, midB.x, midB.y);
       }
       ctx.stroke();
-
-      lastPoint.current = point;
     },
-    [getContext, penSettings.mode],
+    [getContext],
   );
 
   const stopDrawing = useCallback(() => {
-    /* If the user tapped without moving, draw a dot */
-    if (isDrawing.current && currentStrokePoints.current.length === 1 &&
-        penSettings.mode !== "eraser") {
-      const ctx = getContext();
-      const pt  = currentStrokePoints.current[0];
-      if (ctx) {
-        ctx.save();
-        ctx.globalAlpha = penSettings.opacity;
-        ctx.fillStyle   = penSettings.color;
-        const r = (penSettings.thickness * (pt.pressure ?? 0.5)) / 2;
-        ctx.beginPath();
-        ctx.arc(pt.x, pt.y, Math.max(r, 0.5), 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-      }
-    }
-    isDrawing.current           = false;
-    lastPoint.current           = null;
-    currentStrokePoints.current = [];
-  }, [getContext, penSettings]);
-
-  const undo = useCallback(() => {
     const ctx    = getContext();
-    const canvas = canvasRef.current;
-    if (!ctx || !canvas) return;
-    ctx.save();
-    ctx.globalCompositeOperation = "source-over";
-    ctx.globalAlpha = 1;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    const snap = history.current.pop();
-    if (snap instanceof HTMLCanvasElement) ctx.drawImage(snap, 0, 0);
-    ctx.restore();
+    const stroke = currentStroke.current;
+
+    /* Single-point tap → draw a dot so the user sees feedback */
+    if (ctx && stroke && stroke.points.length === 1 && stroke.mode !== "eraser") {
+      const p = stroke.points[0];
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, Math.max(stroke.width / 2, 0.5), 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    isDrawing.current     = false;
+    currentStroke.current = null;
   }, [getContext]);
 
+  /* Cancel any in-flight stroke so undo/clear can mutate the stroke
+     list without orphaning the active currentStroke reference. */
+  const cancelActiveStroke = () => {
+    isDrawing.current     = false;
+    currentStroke.current = null;
+  };
+
+  const undo = useCallback(() => {
+    cancelActiveStroke();
+    const prev = undoStack.current.pop();
+    if (!prev) return;
+    strokes.current = prev;
+    renderAll();
+  }, [renderAll]);
+
   const clear = useCallback(() => {
+    cancelActiveStroke();
+    pushUndo();
+    strokes.current = [];
     const ctx    = getContext();
     const canvas = canvasRef.current;
-    if (!ctx || !canvas) return;
-    saveToHistory();
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-  }, [getContext, saveToHistory]);
+    if (ctx && canvas) ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }, [getContext]);
 
   const clearHistory = useCallback(() => {
-    history.current = [];
+    cancelActiveStroke();
+    strokes.current  = [];
+    undoStack.current = [];
     const ctx    = getContext();
     const canvas = canvasRef.current;
     if (ctx && canvas) ctx.clearRect(0, 0, canvas.width, canvas.height);
   }, [getContext]);
 
   const downloadAsImage = useCallback(
-    (textLayerRef: RefObject<HTMLElement | null>, showText: boolean, fileName: string) => {
+    (_textLayerRef: RefObject<HTMLElement | null>, _showText: boolean, fileName: string) => {
       const drawingCanvas = canvasRef.current;
       if (!drawingCanvas) return;
       const exportCanvas  = document.createElement("canvas");
@@ -213,11 +266,12 @@ export function useCanvas(penSettings: PenSettings, containerRef: RefObject<HTML
     [],
   );
 
-  /* touchmove prevention is handled in SurahDisplay on the scroll container */
-
   return {
     canvasRef, startDrawing, draw, stopDrawing,
     undo, clear, clearHistory, downloadAsImage,
     getCanvasPoint, isDrawing,
+    /* Exposed so SurahDisplay can replay strokes after a canvas resize
+       instead of doing an expensive snapshot/restore. */
+    renderAll,
   };
 }
